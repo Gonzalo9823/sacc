@@ -2,6 +2,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession, type DefaultSession, type NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import type { UserRole } from '@prisma/client';
 
 import { env } from '~/env.mjs';
 import { db } from '~/server/db';
@@ -9,16 +10,14 @@ import { db } from '~/server/db';
 declare module 'next-auth' {
   interface Session extends DefaultSession {
     user: {
-      id: string;
-      // ...other properties
-      // role: UserRole;
+      id: number;
+      role: UserRole;
     } & DefaultSession['user'];
   }
 
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
+  interface User {
+    role: UserRole;
+  }
 }
 
 export const authOptions: NextAuthOptions = {
