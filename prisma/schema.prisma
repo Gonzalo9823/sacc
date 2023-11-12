@@ -37,6 +37,7 @@ model User {
   id            Int           @id @default(autoincrement())
   name          String?
   email         String?       @unique
+  password      String
   emailVerified DateTime?
   image         String?
   accounts      Account[]
@@ -44,6 +45,7 @@ model User {
   reservations  Reservation[]
   role          UserRole
   stations      UserStation[]
+  enabled       Boolean
 }
 
 enum UserRole {
