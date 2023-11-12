@@ -5,7 +5,7 @@ import type { UserRole } from '@prisma/client';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 import { db } from '~/server/db';
-import type { AdapterUser } from 'next-auth/adapters';
+import type { AdapterSession, AdapterUser } from 'next-auth/adapters';
 
 declare module 'next-auth' {
   interface Session extends DefaultSession {
@@ -32,8 +32,41 @@ export const authOptions: NextAuthOptions = {
         id: parseInt(token.sub!) as unknown as string,
       },
     }),
+    jwt: async ({ token, user }) => {
+      if (!user) {
+        await db.user.findUniqueOrThrow({ where: { id: parseInt(token.sub!), enabled: true } });
+      }
+
+      return token;
+    },
   },
-  adapter: PrismaAdapter(db),
+  adapter: {
+    ...PrismaAdapter(db),
+    getUser: async (id) => {
+      return db.user.findUnique({ where: { id: parseInt(id), enabled: true } }) as unknown as Awaitable<AdapterUser>;
+    },
+    getUserByEmail: async (email) => {
+      return db.user.findUnique({ where: { email, enabled: true } }) as unknown as Awaitable<AdapterUser>;
+    },
+    async getUserByAccount(provider_providerAccountId) {
+      const account = await db.account.findUnique({
+        where: { provider_providerAccountId, user: { enabled: true } },
+        select: { user: true },
+      });
+      return (account?.user as unknown as Awaitable<AdapterUser>) ?? null;
+    },
+    async getSessionAndUser(sessionToken) {
+      const userAndSession = await db.session.findUnique({
+        where: { sessionToken, user: { enabled: true } },
+        include: { user: true },
+      });
+
+      if (!userAndSession) return null;
+
+      const { user, ...session } = userAndSession;
+      return { user: user as unknown as AdapterUser, session: session as unknown as AdapterSession };
+    },
+  },
   providers: [
     CredentialsProvider({
       name: 'Credentials',
