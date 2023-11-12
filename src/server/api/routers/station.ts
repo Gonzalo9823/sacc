@@ -19,6 +19,21 @@ export const stationRouter = createTRPCRouter({
         ),
       })
     )
+    .output(
+      z.object({
+        id: z.number(),
+        location: z.string(),
+        lockers: z.array(
+          z.object({
+            id: z.number(),
+            status: z.nativeEnum(LockerStatus),
+            height: z.number(),
+            width: z.number(),
+            available: z.boolean(),
+          })
+        ),
+      })
+    )
     .mutation(async ({ ctx: { db, session }, input }) => {
       if (session.user.role === UserRole.ADMIN && !input.allowedForUsers) {
         throw new Error(`allowedForUsers must be present for ADMIN users.`);
@@ -58,44 +73,79 @@ export const stationRouter = createTRPCRouter({
       return station;
     }),
 
-  getMany: protectedProcedure.meta({ openapi: { method: 'GET', path: '/stations' } }).query(async ({ ctx: { db, session } }) => {
-    const stations = await db.station.findMany({
-      include: {
-        lockers: {
-          select: {
-            id: true,
-            height: true,
-            width: true,
-            status: true,
-            available: true,
-          },
-          orderBy: {
-            id: 'desc',
+  getMany: protectedProcedure
+    .meta({ openapi: { method: 'GET', path: '/stations' } })
+    .input(z.void())
+    .output(
+      z
+        .object({
+          id: z.number(),
+          location: z.string(),
+          lockers: z.array(
+            z.object({
+              id: z.number(),
+              status: z.nativeEnum(LockerStatus),
+              height: z.number(),
+              width: z.number(),
+              available: z.boolean(),
+            })
+          ),
+        })
+        .array()
+    )
+    .query(async ({ ctx: { db, session } }) => {
+      const stations = await db.station.findMany({
+        include: {
+          lockers: {
+            select: {
+              id: true,
+              height: true,
+              width: true,
+              status: true,
+              available: true,
+            },
+            orderBy: {
+              id: 'desc',
+            },
           },
         },
-      },
-      where: {
-        ...(session.user.role === UserRole.ADMIN
-          ? {}
-          : {
-              allowedForUsers: {
-                some: {
-                  userId: session.user.id,
+        where: {
+          ...(session.user.role === UserRole.ADMIN
+            ? {}
+            : {
+                allowedForUsers: {
+                  some: {
+                    userId: session.user.id,
+                  },
                 },
-              },
-            }),
-      },
-      orderBy: {
-        id: 'desc',
-      },
-    });
+              }),
+        },
+        orderBy: {
+          id: 'desc',
+        },
+      });
 
-    return stations;
-  }),
+      return stations;
+    }),
 
   get: protectedProcedure
     .meta({ openapi: { method: 'GET', path: '/stations/{id}' } })
     .input(z.object({ id: z.number().int().positive() }))
+    .output(
+      z.object({
+        id: z.number(),
+        location: z.string(),
+        lockers: z.array(
+          z.object({
+            id: z.number(),
+            status: z.nativeEnum(LockerStatus),
+            height: z.number(),
+            width: z.number(),
+            available: z.boolean(),
+          })
+        ),
+      })
+    )
     .query(async ({ ctx: { db, session }, input }) => {
       const station = await db.station.findUniqueOrThrow({
         include: {
@@ -146,6 +196,21 @@ export const stationRouter = createTRPCRouter({
             })
           ),
         }),
+      })
+    )
+    .output(
+      z.object({
+        id: z.number(),
+        location: z.string(),
+        lockers: z.array(
+          z.object({
+            id: z.number(),
+            status: z.nativeEnum(LockerStatus),
+            height: z.number(),
+            width: z.number(),
+            available: z.boolean(),
+          })
+        ),
       })
     )
     .mutation(async ({ ctx: { db, session }, input }) => {
