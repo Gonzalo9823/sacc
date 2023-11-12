@@ -97,11 +97,12 @@ enum LockerStatus {
 }
 
 model Reservation {
-  id           Int     @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   reservedById Int
-  reservedBy   User    @relation(fields: [reservedById], references: [id])
+  reservedBy   User     @relation(fields: [reservedById], references: [id])
   lockerId     Int
-  locker       Locker  @relation(fields: [lockerId], references: [id])
+  locker       Locker   @relation(fields: [lockerId], references: [id])
   confirmed    Boolean
   completed    Boolean
+  createdAt    DateTime @default(now())
 }

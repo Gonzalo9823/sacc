@@ -336,4 +336,133 @@ export const stationRouter = createTRPCRouter({
         },
       });
     }),
+
+  reserve: protectedProcedure
+    .meta({ openapi: { method: 'POST', path: '/stations/{id}/reservate' } })
+    .input(
+      z.object({
+        id: z.number().int().positive(),
+        height: z.number().positive(),
+        width: z.number().positive(),
+      })
+    )
+    .output(
+      z.object({
+        reservation: z.object({
+          id: z.number(),
+          locker: z.object({
+            id: z.number(),
+            status: z.nativeEnum(LockerStatus),
+            height: z.number(),
+            width: z.number(),
+            available: z.boolean(),
+          }),
+        }),
+      })
+    )
+    .mutation(async ({ ctx: { db, session }, input }) => {
+      const station = await db.station.findUniqueOrThrow({
+        include: {
+          lockers: {
+            include: {
+              reservations: {
+                where: {
+                  confirmed: false,
+                },
+                take: 1,
+                orderBy: {
+                  createdAt: 'asc',
+                },
+              },
+            },
+            where: {
+              OR: [
+                {
+                  status: LockerStatus.EMPTY,
+                },
+                {
+                  status: LockerStatus.RESERVED,
+                },
+              ],
+              available: true,
+              height: { gte: input.height },
+              width: { gte: input.width },
+            },
+            orderBy: {
+              height: 'asc',
+              width: 'asc',
+            },
+          },
+        },
+        where: {
+          id: input.id,
+          ...(session.user.role === UserRole.ADMIN
+            ? {}
+            : {
+                allowedForUsers: {
+                  some: {
+                    userId: session.user.id,
+                  },
+                },
+              }),
+        },
+      });
+
+      const availableLockers = station.lockers.filter((locker) => {
+        if (
+          locker.status === LockerStatus.RESERVED &&
+          new Date(locker.reservations.at(0)!.createdAt.getTime() + 15 * 60 * 1000).getTime() < new Date().getTime()
+        ) {
+          return true;
+        }
+
+        return locker.status === LockerStatus.EMPTY;
+      });
+
+      const locker = availableLockers.at(0);
+
+      if (!locker) {
+        throw new Error('Not available Locker.');
+      }
+
+      const reservation = await db.$transaction(async (prisma) => {
+        await prisma.locker.update({
+          data: {
+            status: LockerStatus.RESERVED,
+          },
+          where: {
+            id: locker.id,
+          },
+        });
+
+        const reservation = await prisma.reservation.create({
+          include: {
+            locker: {
+              select: {
+                id: true,
+                height: true,
+                width: true,
+                status: true,
+                available: true,
+              },
+            },
+          },
+          data: {
+            lockerId: locker.id,
+            reservedById: session.user.id,
+            confirmed: false,
+            completed: false,
+          },
+        });
+
+        return reservation;
+      });
+
+      return {
+        reservation: {
+          id: reservation.id,
+          locker: reservation.locker,
+        },
+      };
+    }),
 });

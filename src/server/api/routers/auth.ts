@@ -7,7 +7,7 @@ export const authRouter = createTRPCRouter({
   logIn: publicProcedure
     .meta({ openapi: { method: 'POST', path: '/auth' } })
     .input(z.object({ email: z.string().email(), password: z.string().trim().min(1) }))
-    .output(z.any())
+    .output(z.object({ token: z.string() }))
     .mutation(async ({ input }) => {
       const csrfApiResponse = await fetch(`${env.NEXTAUTH_URL}/api/auth/csrf`);
       const csrfSetCookiesWithOptions = csrfApiResponse.headers.getSetCookie();
@@ -33,7 +33,7 @@ export const authRouter = createTRPCRouter({
       });
 
       return {
-        token: credentialsResponse.headers.getSetCookie()[1]?.split('=')[1]?.split(';')[0],
+        token: credentialsResponse.headers.getSetCookie()[1]!.split('=')[1]!.split(';')[0]!,
       };
     }),
 });
