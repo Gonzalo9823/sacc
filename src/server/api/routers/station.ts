@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { UserRole, LockerStatus, type Prisma } from '@prisma/client';
 
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
+import { Mailer } from '~/server/mailer';
 
 export const stationRouter = createTRPCRouter({
   create: protectedProcedure
@@ -342,6 +343,7 @@ export const stationRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.number().int().positive(),
+        clientEmail: z.string().email(),
         height: z.number().positive(),
         width: z.number().positive(),
       })
@@ -388,10 +390,7 @@ export const stationRouter = createTRPCRouter({
               height: { gte: input.height },
               width: { gte: input.width },
             },
-            orderBy: {
-              height: 'asc',
-              width: 'asc',
-            },
+            orderBy: [{ height: 'asc' }, { width: 'asc' }],
           },
         },
         where: {
@@ -425,44 +424,62 @@ export const stationRouter = createTRPCRouter({
         throw new Error('Not available Locker.');
       }
 
-      const reservation = await db.$transaction(async (prisma) => {
-        await prisma.locker.update({
-          data: {
-            status: LockerStatus.RESERVED,
-          },
-          where: {
-            id: locker.id,
-          },
-        });
+      try {
+        const reservation = await db.$transaction(async (prisma) => {
+          await prisma.locker.update({
+            data: {
+              status: LockerStatus.RESERVED,
+            },
+            where: {
+              id: locker.id,
+            },
+          });
 
-        const reservation = await prisma.reservation.create({
-          include: {
-            locker: {
-              select: {
-                id: true,
-                height: true,
-                width: true,
-                status: true,
-                available: true,
+          const reservation = await prisma.reservation.create({
+            include: {
+              locker: {
+                select: {
+                  id: true,
+                  height: true,
+                  width: true,
+                  status: true,
+                  available: true,
+                },
               },
             },
-          },
-          data: {
-            lockerId: locker.id,
-            reservedById: session.user.id,
-            confirmed: false,
-            completed: false,
-          },
+            data: {
+              lockerId: locker.id,
+              reservedById: session.user.id,
+              clientEmail: input.clientEmail,
+              confirmed: false,
+              completed: false,
+            },
+          });
+
+          return reservation;
         });
 
-        return reservation;
-      });
+        await new Mailer()
+          .sendEmail({
+            to: session.user.email,
+            subject: '¡Reserva hecha!',
+            text: `Reserva en estación ${input.id} y locker ${locker.id} hecha correctamente.`,
+            html: `<p>Reserva en estación ${input.id} y locker ${locker.id} hecha correctamente.</p>`,
+          })
+          .catch((err) => {
+            console.log(err);
+          });
 
-      return {
-        reservation: {
-          id: reservation.id,
-          locker: reservation.locker,
-        },
-      };
+        return {
+          reservation: {
+            id: reservation.id,
+            locker: reservation.locker,
+          },
+        };
+      } catch (err) {
+        console.log(err);
+      }
+
+      throw new Error('There was an error making the reservation.');
     }),
 });
