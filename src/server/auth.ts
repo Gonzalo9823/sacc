@@ -12,6 +12,7 @@ declare module 'next-auth' {
     user: {
       id: number;
       role: UserRole;
+      email: string;
     } & DefaultSession['user'];
   }
 
@@ -30,12 +31,12 @@ export const authOptions: NextAuthOptions = {
       user: {
         ...session.user,
         id: parseInt(token.sub!) as unknown as string,
+        role: token.role,
       },
     }),
     jwt: async ({ token, user }) => {
-      if (!user) {
-        await db.user.findUniqueOrThrow({ where: { id: parseInt(token.sub!), enabled: true } });
-      }
+      const _user = user || (await db.user.findUniqueOrThrow({ where: { id: parseInt(token.sub!), enabled: true } }));
+      token.role = _user.role;
 
       return token;
     },
