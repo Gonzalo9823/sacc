@@ -4,6 +4,7 @@ import crypto from 'crypto';
 
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
 import { Mailer } from '~/server/mailer';
+import { MQTTClient } from '~/server/mqtt';
 
 export const reservationRouter = createTRPCRouter({
   create: protectedProcedure
@@ -27,6 +28,20 @@ export const reservationRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx: { db, session }, input }) => {
+
+      const client = new MQTTClient();
+
+      // Create json to send
+      const json = JSON.stringify({
+        stationId: input.stationId,
+        lockerId: 1,
+        status: LockerStatus.RESERVED,
+      });
+
+
+
+
+      client.publish('pds_public_broker','')
       const station = await db.station.findUniqueOrThrow({
         include: {
           lockers: {
