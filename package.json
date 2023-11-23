@@ -8,7 +8,8 @@
     "db:studio": "prisma studio",
     "dev:ws": "tsx watch src/server/wss-dev-server.ts",
     "dev:broker": "tsx watch fake-broker.ts",
-    "dev": "next dev",
+    "dev:next": "next dev",
+    "dev": "run-p dev:{next,broker}",
     "postinstall": "prisma generate",
     "lint": "tsc --noEmit && next lint",
     "start": "next start"
@@ -35,6 +36,7 @@
     "superjson": "^1.13.1",
     "trpc-openapi": "^1.2.0",
     "utf-8-validate": "^6.0.3",
+    "yarn-run-all": "^3.1.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
