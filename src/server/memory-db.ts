@@ -1,5 +1,5 @@
 export const memoryDb = globalThis as unknown as {
-  station?: {
+  stations?: {
     stationId: string;
     lockers: {
       nickname: string;
@@ -12,5 +12,5 @@ export const memoryDb = globalThis as unknown as {
         depth: number;
       };
     }[];
-  };
+  }[];
 };

@@ -11,18 +11,20 @@ export async function register() {
       try {
         switch (topic) {
           case 'topic/detail': {
-            const station = JSON.parse(message.toString()) as {
-              station_id: string;
-              lockers: {
-                nickname: string;
-                state: string;
-                is_open: boolean;
-                is_empty: boolean;
-                sizes: string;
-              }[];
-            };
+            const stations = JSON.parse(message.toString()) as [
+              {
+                station_id: string;
+                lockers: {
+                  nickname: string;
+                  state: string;
+                  is_open: boolean;
+                  is_empty: boolean;
+                  sizes: string;
+                }[];
+              },
+            ];
 
-            memoryDb.station = {
+            memoryDb.stations = stations.map((station) => ({
               stationId: station.station_id,
               lockers: station.lockers.map((locker) => {
                 const sizes = locker.sizes.replace('[', '').replace(']', '').split('x');
@@ -39,7 +41,7 @@ export async function register() {
                   },
                 };
               }),
-            };
+            }));
 
             break;
           }
