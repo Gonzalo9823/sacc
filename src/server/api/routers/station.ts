@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { UserRole, LockerStatus, type Prisma } from '@prisma/client';
 
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
+import { memoryDb } from '~/server/memory-db';
 
 export const stationRouter = createTRPCRouter({
   create: protectedProcedure
@@ -77,55 +78,31 @@ export const stationRouter = createTRPCRouter({
     .meta({ openapi: { method: 'GET', path: '/stations' } })
     .input(z.void())
     .output(
-      z
-        .object({
-          id: z.number(),
-          location: z.string(),
-          lockers: z.array(
-            z.object({
-              id: z.number(),
-              status: z.nativeEnum(LockerStatus),
-              height: z.number(),
-              width: z.number(),
-              available: z.boolean(),
-            })
-          ),
-        })
-        .array()
+      z.object({
+        stations: z.array(
+          z.object({
+            stationId: z.string(),
+            lockers: z.array(
+              z.object({
+                nickname: z.string(),
+                state: z.string(),
+                isOpen: z.boolean(),
+                isEmpty: z.boolean(),
+                sizes: z.object({
+                  height: z.number(),
+                  width: z.number(),
+                  depth: z.number(),
+                }),
+              })
+            ),
+          })
+        ),
+      })
     )
-    .query(async ({ ctx: { db, session } }) => {
-      const stations = await db.station.findMany({
-        include: {
-          lockers: {
-            select: {
-              id: true,
-              height: true,
-              width: true,
-              status: true,
-              available: true,
-            },
-            orderBy: {
-              id: 'desc',
-            },
-          },
-        },
-        where: {
-          ...(session.user.role === UserRole.ADMIN
-            ? {}
-            : {
-                allowedForUsers: {
-                  some: {
-                    userId: session.user.id,
-                  },
-                },
-              }),
-        },
-        orderBy: {
-          id: 'desc',
-        },
-      });
-
-      return stations;
+    .query(() => {
+      return {
+        stations: memoryDb.stations ?? [],
+      };
     }),
 
   get: protectedProcedure
@@ -336,5 +313,4 @@ export const stationRouter = createTRPCRouter({
         },
       });
     }),
-
 });
