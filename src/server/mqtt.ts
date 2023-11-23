@@ -1,4 +1,5 @@
-import mqtt, { type MqttClient as MqttClientType } from 'mqtt';
+import type { MqttClient as MqttClientType } from 'mqtt';
+import * as mqtt from 'mqtt';
 import { env } from '~/env.mjs';
 
 export class MQTTClient {
@@ -7,8 +8,14 @@ export class MQTTClient {
 
   constructor() {
     if (!MQTTClient.instance) {
-      this.client = mqtt.connect(env.MQTT_BROKER_URL);
+      this.client = mqtt.connect(env.MQTT_BROKER_URL, {
+        username: env.MQTT_USER_NAME,
+        password: env.MQTT_PASSWORD,
+        port: env.MQTT_PORT,
+      });
+
       this.setupEventHandlers();
+
       MQTTClient.instance = this;
     }
 
@@ -39,5 +46,9 @@ export class MQTTClient {
         console.error('Subscribe error:', error);
       }
     });
+  }
+
+  onMessage(handler: (topic: string, message: Buffer) => void) {
+    this.client.on('message', handler);
   }
 }
