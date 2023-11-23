@@ -4,6 +4,10 @@ import type { OpenApiMeta } from 'trpc-openapi';
 import type { NextRequest } from 'next/server';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
+import type { NodeHTTPCreateContextFnOptions } from '@trpc/server/adapters/node-http';
+import type { IncomingMessage } from 'http';
+import type ws from 'ws';
+import { getSession } from 'next-auth/react';
 
 import { getHTTPServerAuthSession, getServerAuthSession } from '~/server/auth';
 import { db } from '~/server/db';
@@ -14,6 +18,16 @@ export const createTRPCContext = async (opts: { req: NextRequest }) => {
   return {
     session,
     req: opts.req.headers,
+    db,
+  };
+};
+
+export const createTRPCWSContext = async (opts: NodeHTTPCreateContextFnOptions<IncomingMessage, ws>) => {
+  const session = await getSession(opts);
+
+  return {
+    session,
+    req: opts.req.headers as unknown as NextRequest['headers'],
     db,
   };
 };
