@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getServerAuthSession } from '~/server/auth';
+import Image from 'next/image';
 
 import SignInForm from '~/app/_components/sign-in-form';
+import SignInImage from '~/../public/sign-in.jpeg';
 
 export default async function Home() {
   const session = await getServerAuthSession();
@@ -22,11 +24,7 @@ export default async function Home() {
         </div>
       </div>
       <div className="relative hidden w-0 flex-1 lg:block">
-        <img
-          className="absolute inset-0 h-full w-full object-cover"
-          src="https://images.unsplash.com/photo-1496917756835-20cb06e75b4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1908&q=80"
-          alt=""
-        />
+        <Image className="absolute inset-0 h-full w-full object-cover" src={SignInImage} alt="" />
       </div>
     </div>
   );
