@@ -1,4 +1,3 @@
-import { stat } from 'fs';
 import { memoryDb } from '~/server/memory-db';
 
 export async function register() {
@@ -8,55 +7,22 @@ export async function register() {
 
     mqtt.subscribe('pds_public_broker/detail');
 
-
     mqtt.onMessage((topic, message) => {
       try {
         switch (topic) {
           case 'pds_public_broker/detail': {
-            console.log('Received message on topic pds_public_broker/detail');
-            // console.log(message.toString());
-            const station = JSON.parse(message.toString()) as 
-              {
-                station_id: string;
-                lockers: {
-                  nickname: string;
-                  state: string;
-                  is_open: boolean;
-                  is_empty: boolean;
-                  sizes: string;
-                }[];
-              }
-            ;
+            const station = JSON.parse(message.toString()) as {
+              station_id: string;
+              lockers: {
+                nickname: string;
+                state: string;
+                is_open: boolean;
+                is_empty: boolean;
+                sizes: string;
+              }[];
+            };
 
-            if (!memoryDb.stations) {
-              memoryDb.stations = [];
-            }
-            else{
-              console.log('memoryDb.stations', memoryDb.stations);
-            }
-
-
-            if (memoryDb.stations.find((station2) => station2.stationId === station.station_id)) {
-              console.log('Station already exists, updating info');
-
-              
-              let station2 = memoryDb.stations.find((station2) => station2.stationId === station.station_id)
-
-              station.lockers.forEach((locker) => {
-                station2!.lockers.find((locker2) => locker2.nickname === locker.nickname)!.state = locker.state;
-                station2!.lockers.find((locker2) => locker2.nickname === locker.nickname)!.isOpen = locker.is_open;
-                station2!.lockers.find((locker2) => locker2.nickname === locker.nickname)!.isEmpty = locker.is_empty;
-              });
-
-
-
-
-
-            }
-            
-
-            else
-            {memoryDb.stations.push({
+            const parsedStation = {
               stationId: station.station_id,
               lockers: station.lockers.map((locker) => {
                 const sizes = locker.sizes.replace('[', '').replace(']', '').split('x');
@@ -73,15 +39,18 @@ export async function register() {
                   },
                 };
               }),
-            });}
-            
-            console.log('memoryDb.stations', memoryDb.stations);
-            memoryDb.stations.forEach((station) => {
-              console.log('station', station);
-              station.lockers.forEach((locker) => {
-                console.log('locker', locker);
-              });
-            });
+            };
+
+            if (!memoryDb.stations) memoryDb.stations = [];
+
+            const alreadyAddedStationIdx = memoryDb.stations.findIndex(({ stationId }) => stationId === parsedStation.stationId);
+
+            if (alreadyAddedStationIdx) {
+              memoryDb.stations[alreadyAddedStationIdx] = parsedStation;
+              break;
+            }
+
+            memoryDb.stations.push(parsedStation);
 
             break;
           }
