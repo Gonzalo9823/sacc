@@ -13,22 +13,20 @@ server.listen(env.MQTT_PORT, function () {
   setInterval(() => {
     aedes.publish(
       {
-        topic: 'topic/detail',
+        topic: 'pds_public_broker/detail',
         payload: Buffer.from(
-          JSON.stringify([
-            {
-              station_id: 'G7',
-              lockers: [
-                {
-                  nickname: '0',
-                  state: 'RESERVADO',
-                  is_open: true,
-                  is_empty: false,
-                  sizes: '[20x20x20]',
-                },
-              ],
-            },
-          ])
+          JSON.stringify({
+            station_id: 'G7',
+            lockers: [
+              {
+                nickname: '0',
+                state: 'RESERVADO',
+                is_open: true,
+                is_empty: false,
+                sizes: '[20x20x20]',
+              },
+            ],
+          })
         ),
         retain: false,
         cmd: 'publish',
