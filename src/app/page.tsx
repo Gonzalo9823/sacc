@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
-import React from 'react';
-
 import { getServerAuthSession } from '~/server/auth';
+
 import SignInForm from '~/app/_components/sign-in-form';
 
 export default async function Home() {

@@ -2,7 +2,7 @@
 
 ## Frontend
 
-- [ ] Sign in page
+- [x] Sign in page
 - [ ] Home page - > List of all the lockers available to load or unload
 - [ ] Locker page - > If the locker is empty, show a button to load it, else show a button to unload it (if client or operator)
 - [ ] Locker loading page - > Show a button to close the locker
