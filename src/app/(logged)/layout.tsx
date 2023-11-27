@@ -14,7 +14,7 @@ export default async function LoggedLayout({ children }: { children: React.React
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             <div className="flex flex-shrink-0 items-center">
-              <Link className="font-bold" href="/dashboard">
+              <Link className="font-bold" href="/stations">
                 Locker Hub
               </Link>
             </div>

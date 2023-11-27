@@ -40,7 +40,7 @@ const SignInForm: FunctionComponent = () => {
     });
 
     if (logged) {
-      router.push('/dashboard');
+      router.push('/stations');
     }
   };
 

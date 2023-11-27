@@ -5,7 +5,7 @@ import SignInForm from '~/app/_components/sign-in-form';
 
 export default async function Home() {
   const session = await getServerAuthSession();
-  if (session) redirect('/dashboard');
+  if (session) redirect('/stations');
 
   return (
     <div className="flex min-h-full flex-1">
