@@ -82,25 +82,6 @@ export async function register() {
                 console.log('locker', locker);
               });
             });
-            // memoryDb.stations = stations.map((station) => ({
-            //   stationId: station.station_id,
-            //   lockers: station.lockers.map((locker) => {
-            //     const sizes = locker.sizes.replace('[', '').replace(']', '').split('x');
-            //     console.log(sizes);
-
-            //     return {
-            //       nickname: locker.nickname,
-            //       state: locker.state,
-            //       isOpen: locker.is_open,
-            //       isEmpty: locker.is_empty,
-            //       sizes: {
-            //         height: parseFloat(sizes[0]!),
-            //         width: parseFloat(sizes[1]!),
-            //         depth: parseFloat(sizes[2]!),
-            //       },
-            //     };
-            //   }),
-            // }));
 
             break;
           }
