@@ -1,6 +1,9 @@
+// @ts-nocheck
 import React from 'react'
+import { render } from 'react-dom'
 import { api } from '~/trpc/server';
-import style from './style.css'
+import './style.css'
+
 
 export default function UserSignIn (props) {
 
@@ -11,6 +14,7 @@ export default function UserSignIn (props) {
   const [error, setError] = React.useState('')
   const [loading, setLoading] = React.useState(false)
 
+ 
   const handleEmailChange = (event) => {
     setEmail(event.target.value)
   }
