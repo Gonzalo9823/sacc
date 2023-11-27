@@ -1,5 +1,5 @@
 import React from 'react'
-import { logIn } from '../../../server/api/routers/auth.ts'
+import { api } from '~/trpc/server';
 import style from './style.css'
 
 export default function UserSignIn (props) {
@@ -29,13 +29,16 @@ export default function UserSignIn (props) {
     }
     // log in with router create in auth.js
 
-    cons token = await logIn(data)
+    const token = api.auth.login(data)
 
     if (token) {
       // save token in local storage
       localStorage.setItem('token', token)
       // redirect to home page
       props.history.push('/')
+    }
+    else {
+      setError('Invalid email or password')
     }
   }
 
@@ -56,12 +59,9 @@ export default function UserSignIn (props) {
       <input type="submit" value="Submit" />
     </form>
 
-    
 
 
-    
-    
-    
+
     
     
     
