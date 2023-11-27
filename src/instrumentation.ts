@@ -51,6 +51,8 @@ export async function register() {
             }
 
             memoryDb.stations.push(parsedStation);
+            console.log(`Added station ${parsedStation.stationId}`);
+            console.log(memoryDb.stations);
 
             break;
           }
