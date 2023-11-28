@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerAuthSession } from '~/server/auth';
 import Image from 'next/image';
 import Link from 'next/link';
+import { api } from '~/trpc/server';
 
 import './styles.css';
 import SignInForm from '~/app/_components/sign-in-form';
@@ -33,6 +34,11 @@ export default async function Home() {
               El casillero es:
             </h2>
             <h1 className='pass-title'>Aca dato casillero</h1>
+
+            <Link href= {api.station.loadLocker} className='button'> Abrir Casillero </Link>
+
+
+
           </div>
         </div>
         <Link href="/" passHref className='mt-2'>
