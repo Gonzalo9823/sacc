@@ -28,7 +28,6 @@ export const reservationRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx: { db, session }, input }) => {
-
       const client = new MQTTClient();
 
       // Create json to send
@@ -38,10 +37,8 @@ export const reservationRouter = createTRPCRouter({
         status: LockerStatus.RESERVED,
       });
 
+      client.publish('pds_public_broker', '');
 
-
-
-      client.publish('pds_public_broker','')
       const station = await db.station.findUniqueOrThrow({
         include: {
           lockers: {

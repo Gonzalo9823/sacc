@@ -1,16 +1,17 @@
 import { memoryDb } from '~/server/memory-db';
+import type { Station } from '~/interfaces/Station';
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { MQTTClient } = await import('~/server/mqtt');
     const mqtt = new MQTTClient();
 
-    mqtt.subscribe('pds_public_broker/detail');
+    mqtt.subscribe('STATUS');
 
     mqtt.onMessage((topic, message) => {
       try {
         switch (topic) {
-          case 'pds_public_broker/detail': {
+          case 'STATUS': {
             const station = JSON.parse(message.toString()) as {
               station_id: string;
               lockers: {
@@ -22,7 +23,7 @@ export async function register() {
               }[];
             };
 
-            const parsedStation = {
+            const parsedStation: Station = {
               stationId: station.station_id,
               lockers: station.lockers.map((locker) => {
                 const sizes = locker.sizes.replace('[', '').replace(']', '').split('x');
