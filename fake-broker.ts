@@ -7,13 +7,15 @@ import { env } from '~/env.mjs';
 const aedes = new Aedes();
 const server = createServer(aedes.handle);
 
+let lastBool = true;
+
 server.listen(env.MQTT_PORT, function () {
   console.log(`Broker server started and listening on port ${env.MQTT_PORT}`);
 
   setInterval(() => {
     aedes.publish(
       {
-        topic: 'DETAIL',
+        topic: 'TEST/DETAIL',
         payload: Buffer.from(
           JSON.stringify({
             station_id: 'G7',
@@ -21,8 +23,8 @@ server.listen(env.MQTT_PORT, function () {
               {
                 nickname: '0',
                 state: '0',
-                is_open: true,
-                is_empty: false,
+                is_open: lastBool,
+                is_empty: !lastBool,
                 sizes: '20x20x20',
               },
             ],
@@ -39,5 +41,7 @@ server.listen(env.MQTT_PORT, function () {
         }
       }
     );
+
+    lastBool = !lastBool;
   }, 5000);
 });

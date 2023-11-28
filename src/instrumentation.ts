@@ -6,12 +6,12 @@ export async function register() {
     const { MQTTClient } = await import('~/server/mqtt');
     const mqtt = new MQTTClient();
 
-    mqtt.subscribe('STATUS');
+    mqtt.subscribe('TEST/DETAIL');
 
     mqtt.onMessage((topic, message) => {
       try {
         switch (topic) {
-          case 'STATUS': {
+          case 'TEST/DETAIL': {
             const station = JSON.parse(message.toString()) as {
               station_id: string;
               lockers: {

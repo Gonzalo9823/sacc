@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import ReloadDataButton from '~/components/reload-data-button';
 import { getServerAuthSession } from '~/server/auth';
 import { api } from '~/trpc/server';
 
@@ -20,14 +21,17 @@ export default async function Station({ params: { stationId } }: { params: { sta
 
   return (
     <div className="mx-auto mt-8 flow-root space-y-4 px-4 sm:px-0">
-      <h1 className="text-xl font-bold">Lockers:</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Lockers:</h1>
+        <ReloadDataButton />
+      </div>
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
           <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
             <table className="min-w-full divide-y divide-gray-300">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Nombre
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import ReloadDataButton from '~/components/reload-data-button';
 import { getServerAuthSession } from '~/server/auth';
 import { api } from '~/trpc/server';
 
@@ -16,7 +17,11 @@ export default async function Stations() {
   const { stations } = await api.station.getMany.query();
 
   return (
-    <div className="mx-auto mt-8 flow-root px-4 sm:px-0">
+    <div className="mx-auto mt-8 flow-root space-y-4 px-4 sm:px-0">
+      <div className="flex items-center justify-between">
+        <h1 className="pointer-events-none text-xl font-bold text-white">Lockers:</h1>
+        <ReloadDataButton />
+      </div>
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
           <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
