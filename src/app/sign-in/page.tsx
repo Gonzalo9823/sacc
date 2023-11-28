@@ -2,10 +2,10 @@ import { redirect } from 'next/navigation';
 import { getServerAuthSession } from '~/server/auth';
 import Image from 'next/image';
 
-import SignInForm from '~/app/_components/sign-in-form';
+import SignInForm from '~/components/sign-in-form';
 import SignInImage from '~/../public/sign-in.jpeg';
 
-export default async function Home() {
+export default async function SignIn() {
   const session = await getServerAuthSession();
   if (session) redirect('/stations');
 
@@ -20,12 +20,6 @@ export default async function Home() {
             <div>
               <SignInForm />
             </div>
-            <button className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-              Soy Operario
-            </button>
-            <button className="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-              Soy Cliente
-            </button>
           </div>
         </div>
       </div>

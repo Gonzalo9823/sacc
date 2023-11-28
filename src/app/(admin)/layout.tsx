@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getServerAuthSession } from '~/server/auth';
-import NavBarSignOutButton from '~/app/_components/nav-bar-sign-out-button';
-import NavBarHeader from '~/app/_components/nav-bar-header';
+import NavBarSignOutButton from '~/components/nav-bar-sign-out-button';
+import NavBarHeader from '~/components/nav-bar-header';
 
 export default async function LoggedLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerAuthSession();

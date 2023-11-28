@@ -51,27 +51,20 @@ export async function register() {
             }
 
             memoryDb.stations.push(parsedStation);
-            console.log(`Added station ${parsedStation.stationId}`);
-            console.log(memoryDb.stations);
 
             break;
           }
 
-          case 'pds_public_broker/load': {
-            const msg = JSON.parse(message.toString()) as {
-              station_id: string;
-              nickname: string;
+          case 'pds_public_broker/load':
+            {
+              const msg = JSON.parse(message.toString()) as {
+                station_id: string;
+                nickname: string;
               }[];
-            };
 
-            break;
-          }
+              console.log(msg);
+            }
 
-
-
-
-
-          default:
             break;
         }
       } catch (err) {

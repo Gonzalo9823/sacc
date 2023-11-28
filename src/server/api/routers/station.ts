@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { UserRole, LockerStatus, type Prisma } from '@prisma/client';
-import { MqttClient } from 'mqtt/*';
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
 import { memoryDb } from '~/server/memory-db';
 
@@ -74,7 +73,7 @@ export const stationRouter = createTRPCRouter({
       return station;
     }),
 
-    loadLocker: protectedProcedure
+  loadLocker: protectedProcedure
     .meta({ openapi: { method: 'POST', path: '/stations/{id}/{lockerId}/load' } })
     .input(
       z.object({
@@ -88,26 +87,23 @@ export const stationRouter = createTRPCRouter({
         lockerId: z.number().int().positive(),
       })
     )
-    .mutation(async ({ ctx: { db, session }, input }) => {
+    .mutation(async ({ input }) => {
       const { MQTTClient } = await import('~/server/mqtt');
       const mqtt = new MQTTClient();
       mqtt.publish('pds_public_broker/load', JSON.stringify({ station_id: input.id, locker_id: input.lockerId }));
+
       const station = memoryDb.stations?.find(({ stationId }) => stationId === input.id);
-      if (station){
+
+      if (station) {
         const locker = station.lockers.find(({ nickname }) => parseInt(nickname) === input.lockerId);
-        if (locker){
+        if (locker) {
           locker.state = LockerStatus.USED;
         }
       }
-      
 
       return { station_id: input.id, lockerId: input.lockerId };
-    })
+    }),
 
-
-
-
-  ,
   getMany: protectedProcedure
     .meta({ openapi: { method: 'GET', path: '/stations' } })
     .input(z.void())
@@ -141,53 +137,35 @@ export const stationRouter = createTRPCRouter({
 
   get: protectedProcedure
     .meta({ openapi: { method: 'GET', path: '/stations/{id}' } })
-    .input(z.object({ id: z.number().int().positive() }))
+    .input(z.object({ id: z.string() }))
     .output(
       z.object({
-        id: z.number(),
-        location: z.string(),
-        lockers: z.array(
-          z.object({
-            id: z.number(),
-            status: z.nativeEnum(LockerStatus),
-            height: z.number(),
-            width: z.number(),
-            available: z.boolean(),
-          })
-        ),
+        station: z.object({
+          stationId: z.string(),
+          lockers: z.array(
+            z.object({
+              nickname: z.string(),
+              state: z.string(),
+              isOpen: z.boolean(),
+              isEmpty: z.boolean(),
+              sizes: z.object({
+                height: z.number(),
+                width: z.number(),
+                depth: z.number(),
+              }),
+            })
+          ),
+        }),
       })
     )
-    .query(async ({ ctx: { db, session }, input }) => {
-      const station = await db.station.findUniqueOrThrow({
-        include: {
-          lockers: {
-            select: {
-              id: true,
-              height: true,
-              width: true,
-              status: true,
-              available: true,
-            },
-            orderBy: {
-              id: 'desc',
-            },
-          },
-        },
-        where: {
-          id: input.id,
-          ...(session.user.role === UserRole.ADMIN
-            ? {}
-            : {
-                allowedForUsers: {
-                  some: {
-                    userId: session.user.id,
-                  },
-                },
-              }),
-        },
-      });
+    .query(({ input }) => {
+      const station = memoryDb.stations?.find(({ stationId }) => stationId === input.id);
 
-      return station;
+      if (!station) {
+        throw new Error('Not Found.');
+      }
+
+      return { station };
     }),
 
   update: protectedProcedure
