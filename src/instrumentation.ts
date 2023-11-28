@@ -57,6 +57,20 @@ export async function register() {
             break;
           }
 
+          case 'pds_public_broker/load': {
+            const msg = JSON.parse(message.toString()) as {
+              station_id: string;
+              nickname: string;
+              }[];
+            };
+
+            break;
+          }
+
+
+
+
+
           default:
             break;
         }

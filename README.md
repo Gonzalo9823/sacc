@@ -23,6 +23,7 @@
 - ✔ Create a database with all the lockers
 -  ✔ Create a database with all the users
 - ✔ Create a database with all the events
+- [ ] Automatically assign lockers given the size of the package
 
 ## Hardware
 
