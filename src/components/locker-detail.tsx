@@ -7,7 +7,7 @@ import type { Locker } from '~/interfaces/Locker';
 import { api } from '~/trpc/react';
 
 type LockerDetailProps = {
-  locker: Locker & { loaded: boolean };
+  locker: Locker & { loaded: boolean; confirmedOperator: boolean };
   type: 'client' | 'operator';
   password: string;
 };
@@ -47,27 +47,6 @@ const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker, password, 
       </div>
 
       <div className="px-4 py-2">
-        <label htmlFor="password" className="block text-sm font-bold leading-6 text-gray-900">
-          Estado
-        </label>
-        <div className="mt-1">{locker.state}</div>
-      </div>
-
-      <div className="bg-gray-100 px-4 py-2">
-        <label htmlFor="password" className="block text-sm font-bold leading-6 text-gray-900">
-          ¿Abierto?
-        </label>
-        <div className="mt-1">{locker.isOpen ? 'Si' : 'No'}</div>
-      </div>
-
-      <div className="px-4 py-2">
-        <label htmlFor="password" className="block text-sm font-bold leading-6 text-gray-900">
-          ¿Vacio?
-        </label>
-        <div className="mt-1">{locker.isEmpty ? 'Si' : 'No'}</div>
-      </div>
-
-      <div className="bg-gray-100 px-4 py-2">
         <label htmlFor="password" className="block text-sm font-bold leading-6 text-gray-900">
           Tamaño
         </label>

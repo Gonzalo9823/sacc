@@ -42,7 +42,8 @@ export const reservationRouter = createTRPCRouter({
           createdAt: true,
         },
         where: {
-          confirmed: false,
+          confirmed_client: false,
+          confirmed_operator: false,
           expired: false,
           loaded: false,
           stationName: input.stationName,
@@ -88,7 +89,7 @@ export const reservationRouter = createTRPCRouter({
       }
 
       const lockerId = availableLockerIds.at(0);
-      if (!lockerId) throw new TRPCError({ code: 'NOT_FOUND' });
+      if (lockerId === undefined) throw new TRPCError({ code: 'NOT_FOUND' });
 
       const operatorPassword = crypto.randomBytes(10).toString('hex');
       const clientPassword = crypto.randomBytes(10).toString('hex');
@@ -99,7 +100,8 @@ export const reservationRouter = createTRPCRouter({
           lockerId,
           clientEmail: input.clientEmail,
           operatorEmail: input.operatorEmail,
-          confirmed: false,
+          confirmed_client: false,
+          confirmed_operator: false,
           expired: false,
           loaded: false,
           completed: false,
@@ -119,8 +121,8 @@ export const reservationRouter = createTRPCRouter({
       };
     }),
 
-  confirm: protectedProcedure
-    .meta({ openapi: { method: 'POST', path: '/reservation/{id}/confirm' } })
+  confirmClient: protectedProcedure
+    .meta({ openapi: { method: 'POST', path: '/reservation/{id}/confirm-client' } })
     .input(
       z.object({
         id: z.number().int().positive(),
@@ -149,7 +151,8 @@ export const reservationRouter = createTRPCRouter({
         },
         where: {
           id: input.id,
-          confirmed: false,
+          confirmed_client: false,
+          confirmed_operator: false,
           completed: false,
           expired: false,
           ...(session.user.role === UserRole.ADMIN ? {} : { createdById: session.user.id }),
@@ -158,7 +161,7 @@ export const reservationRouter = createTRPCRouter({
 
       await db.reservation.update({
         data: {
-          confirmed: true,
+          confirmed_client: true,
         },
         where: {
           id: reservation.id,
@@ -182,5 +185,173 @@ export const reservationRouter = createTRPCRouter({
           status: LockerStatus.CONFIRMED,
         },
       };
+    }),
+
+  confirmOperator: protectedProcedure
+    .meta({ openapi: { method: 'POST', path: '/reservation/confirm-operator' } })
+    .input(
+      z.object({
+        password: z.string().min(1),
+        height: z.number().positive(),
+        width: z.number().positive(),
+        depth: z.number().positive(),
+      })
+    )
+    .output(
+      z
+        .object({
+          expired: z.literal(false),
+          locker: z.object({
+            nickname: z.number(),
+            loaded: z.boolean(),
+            confirmedOperator: z.boolean(),
+            state: z.nativeEnum(LockerStatus),
+            isOpen: z.boolean(),
+            isEmpty: z.boolean(),
+            sizes: z.object({
+              height: z.number(),
+              width: z.number(),
+              depth: z.number(),
+            }),
+          }),
+        })
+        .or(z.object({ expired: z.literal(true) }))
+    )
+    .mutation(async ({ ctx: { db, session }, input }) => {
+      const reservation = await db.reservation.findFirstOrThrow({
+        select: {
+          id: true,
+          stationName: true,
+          loaded: true,
+          lockerId: true,
+          operatorEmail: true,
+          operatorPassword: true,
+          clientEmail: true,
+          clientPassword: true,
+        },
+        where: {
+          operatorPassword: input.password,
+          confirmed_client: true,
+          confirmed_operator: false,
+          completed: false,
+          expired: false,
+          ...(session.user.role === UserRole.ADMIN ? {} : { createdById: session.user.id }),
+        },
+      });
+
+      const station = memoryDb.stations?.find(({ stationName }) => stationName === reservation.stationName);
+      const locker = station?.lockers.find(({ nickname }) => nickname === reservation.lockerId);
+
+      if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
+
+      if (input.height <= locker.sizes.height && input.width <= locker.sizes.width && input.depth <= locker.sizes.depth) {
+        await db.reservation.update({
+          data: {
+            confirmed_operator: true,
+          },
+          where: {
+            id: reservation.id,
+          },
+        });
+
+        return {
+          expired: false,
+          locker: {
+            ...locker,
+            loaded: false,
+            confirmedOperator: true,
+          },
+        };
+      }
+
+      const reservations = await db.reservation.findMany({
+        select: {
+          id: true,
+          lockerId: true,
+          createdAt: true,
+        },
+        where: {
+          confirmed_client: false,
+          confirmed_operator: false,
+          expired: false,
+          loaded: false,
+          stationName: station!.stationName,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+
+      const { expiredReservationIds, availableLockerIds } = station!.lockers.reduce<{
+        expiredReservationIds: number[];
+        availableLockerIds: number[];
+      }>(
+        (lockers, locker) => {
+          if (input.height <= locker.sizes.height && input.width <= locker.sizes.width && input.depth <= locker.sizes.depth) {
+            const reservation = reservations.find(({ lockerId }) => lockerId === locker.nickname);
+
+            if (reservation) {
+              const isReservationExpired = new Date(reservation.createdAt.getTime() + 15 * 60 * 1000).getTime() < new Date().getTime();
+
+              if (isReservationExpired) {
+                lockers.expiredReservationIds.push(reservation.id);
+                lockers.availableLockerIds.push(locker.nickname);
+              }
+            } else {
+              lockers.availableLockerIds.push(locker.nickname);
+            }
+          }
+
+          return lockers;
+        },
+        { expiredReservationIds: [], availableLockerIds: [] }
+      );
+
+      if (expiredReservationIds.length > 0) {
+        await db.reservation.updateMany({
+          data: {
+            expired: true,
+          },
+          where: {
+            id: {
+              in: expiredReservationIds,
+            },
+          },
+        });
+      }
+
+      const lockerId = availableLockerIds.at(0);
+      const newLocker = station?.lockers.find(({ nickname }) => nickname === lockerId);
+
+      if (newLocker) {
+        await db.reservation.update({
+          data: {
+            lockerId,
+          },
+          where: {
+            id: reservation.id,
+          },
+        });
+
+        return {
+          expired: false,
+          locker: {
+            ...newLocker,
+            loaded: true,
+            confirmedOperator: true,
+          },
+        };
+      }
+
+      await db.reservation.update({
+        data: {
+          expired: true,
+        },
+        where: {
+          id: reservation.id,
+        },
+      });
+
+      return { expired: true };
     }),
 });

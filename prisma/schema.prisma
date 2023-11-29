@@ -61,18 +61,19 @@ model VerificationToken {
 }
 
 model Reservation {
-  id               Int      @id @default(autoincrement())
-  stationName      String
-  lockerId         Int
-  clientEmail      String
-  operatorEmail    String
-  confirmed        Boolean
-  loaded           Boolean
-  expired          Boolean
-  completed        Boolean
-  operatorPassword String
-  clientPassword   String
-  createdAt        DateTime @default(now())
-  createdBy        User     @relation(fields: [createdById], references: [id])
-  createdById      Int
+  id                 Int      @id @default(autoincrement())
+  stationName        String
+  lockerId           Int
+  clientEmail        String
+  operatorEmail      String
+  confirmed_operator Boolean
+  confirmed_client   Boolean
+  loaded             Boolean
+  expired            Boolean
+  completed          Boolean
+  operatorPassword   String
+  clientPassword     String
+  createdAt          DateTime @default(now())
+  createdBy          User     @relation(fields: [createdById], references: [id])
+  createdById        Int
 }

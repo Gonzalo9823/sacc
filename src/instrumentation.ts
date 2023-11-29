@@ -17,7 +17,7 @@ export async function register() {
               station_name: string;
               address: string;
               lockers: {
-                nickname: number;
+                nickname: number | string;
                 state: 0 | 1 | 2 | 3 | 4 | 5;
                 is_open: boolean;
                 is_empty: boolean;
@@ -32,7 +32,7 @@ export async function register() {
                 const sizes = locker.size.replace('[', '').replace(']', '').split('x');
 
                 return {
-                  nickname: locker.nickname,
+                  nickname: typeof locker.nickname === 'string' ? parseInt(locker.nickname, 10) : locker.nickname,
                   state: (() => {
                     switch (locker.state) {
                       case 0:

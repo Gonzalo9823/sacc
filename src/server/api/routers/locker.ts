@@ -21,6 +21,7 @@ export const lockerRouter = createTRPCRouter({
         locker: z.object({
           nickname: z.number(),
           loaded: z.boolean(),
+          confirmedOperator: z.boolean(),
           state: z.nativeEnum(LockerStatus),
           isOpen: z.boolean(),
           isEmpty: z.boolean(),
@@ -38,19 +39,23 @@ export const lockerRouter = createTRPCRouter({
           stationName: true,
           lockerId: true,
           loaded: true,
+          confirmed_operator: true,
         },
         where:
           input.type === 'client'
             ? {
                 clientPassword: input.password,
                 expired: false,
-                confirmed: true,
+                confirmed_client: true,
+                confirmed_operator: true,
+                loaded: true,
                 completed: false,
               }
             : {
                 operatorPassword: input.password,
                 expired: false,
-                confirmed: true,
+                confirmed_client: true,
+                loaded: false,
                 completed: false,
               },
       });
@@ -60,7 +65,9 @@ export const lockerRouter = createTRPCRouter({
 
       if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
 
-      return { locker: { ...locker, loaded: reservation.loaded } };
+      console.log({ locker: { ...locker, loaded: reservation.loaded, confirmedOperator: reservation.confirmed_operator } });
+
+      return { locker: { ...locker, loaded: reservation.loaded, confirmedOperator: reservation.confirmed_operator } };
     }),
 
   open: publicProcedure
@@ -100,14 +107,16 @@ export const lockerRouter = createTRPCRouter({
             ? {
                 clientPassword: input.password,
                 expired: false,
-                confirmed: true,
+                confirmed_client: true,
+                confirmed_operator: true,
                 loaded: true,
                 completed: false,
               }
             : {
                 operatorPassword: input.password,
                 expired: false,
-                confirmed: true,
+                confirmed_client: true,
+                confirmed_operator: true,
                 loaded: false,
                 completed: false,
               },
