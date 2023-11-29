@@ -18,6 +18,7 @@ export const lockerRouter = createTRPCRouter({
       z.object({
         locker: z.object({
           nickname: z.string(),
+          loaded: z.boolean(),
           state: z.nativeEnum(LockerStatus),
           isOpen: z.boolean(),
           isEmpty: z.boolean(),
@@ -34,6 +35,7 @@ export const lockerRouter = createTRPCRouter({
         select: {
           stationId: true,
           lockerId: true,
+          loaded: true,
         },
         where:
           input.type === 'client'
@@ -56,7 +58,7 @@ export const lockerRouter = createTRPCRouter({
 
       if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
 
-      return { locker };
+      return { locker: { ...locker, loaded: reservation.loaded } };
     }),
 
   open: publicProcedure
@@ -85,6 +87,7 @@ export const lockerRouter = createTRPCRouter({
     .mutation(async ({ ctx: { db }, input }) => {
       const reservation = await db.reservation.findFirstOrThrow({
         select: {
+          id: true,
           stationId: true,
           lockerId: true,
         },
@@ -94,12 +97,14 @@ export const lockerRouter = createTRPCRouter({
                 clientPassword: input.password,
                 expired: false,
                 confirmed: true,
+                loaded: true,
                 completed: false,
               }
             : {
                 operatorPassword: input.password,
                 expired: false,
                 confirmed: true,
+                loaded: false,
                 completed: false,
               },
       });
@@ -110,6 +115,15 @@ export const lockerRouter = createTRPCRouter({
       if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
 
       // TODO SEND OPEN
+      await db.reservation.update({
+        data: {
+          loaded: true,
+          completed: input.type === 'client',
+        },
+        where: {
+          id: reservation.id,
+        },
+      });
 
       return { locker };
     }),

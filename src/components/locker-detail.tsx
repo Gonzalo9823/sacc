@@ -1,13 +1,13 @@
 'use client';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import type { FunctionComponent } from 'react';
 import toast from 'react-hot-toast';
 import type { Locker } from '~/interfaces/Locker';
 import { api } from '~/trpc/react';
 
 type LockerDetailProps = {
-  locker: Locker;
+  locker: Locker & { loaded: boolean };
   type: 'client' | 'operator';
   password: string;
 };
@@ -33,7 +33,7 @@ const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker, password, 
     }
 
     if (opened) {
-      await router.push('/');
+      router.push('/');
     }
   };
 
@@ -80,7 +80,7 @@ const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker, password, 
         type="submit"
         className="mt-6 flex w-full items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
         onClick={() => handleOpen()}
-        disabled={isLoading}
+        disabled={isLoading || (type === 'client' && !locker.loaded) || (type === 'operator' && locker.loaded)}
       >
         Desbloquear
       </button>

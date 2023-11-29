@@ -34,9 +34,9 @@ model Session {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
+  id            Int           @id @default(autoincrement())
   name          String?
-  email         String    @unique
+  email         String        @unique
   password      String
   emailVerified DateTime?
   image         String?
@@ -44,6 +44,7 @@ model User {
   sessions      Session[]
   role          UserRole
   enabled       Boolean
+  Reservation   Reservation[]
 }
 
 enum UserRole {
@@ -66,9 +67,12 @@ model Reservation {
   clientEmail      String
   operatorEmail    String
   confirmed        Boolean
+  loaded           Boolean
   expired          Boolean
   completed        Boolean
   operatorPassword String
   clientPassword   String
   createdAt        DateTime @default(now())
+  createdBy        User     @relation(fields: [createdById], references: [id])
+  createdById      Int
 }

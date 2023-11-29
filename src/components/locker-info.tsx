@@ -10,7 +10,7 @@ type LockerInfoProps = {
 };
 
 const LockerInfo: FunctionComponent<LockerInfoProps> = ({ type }) => {
-  const [lockerData, setLockerData] = useState<{ locker: Locker; password: string }>();
+  const [lockerData, setLockerData] = useState<{ locker: Locker & { loaded: boolean }; password: string }>();
 
   if (lockerData) {
     return <LockerDetail locker={lockerData.locker} password={lockerData.password} type={type} />;

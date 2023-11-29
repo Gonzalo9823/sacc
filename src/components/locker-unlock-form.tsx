@@ -16,7 +16,7 @@ type LockerUnlockValues = z.infer<typeof LockerUnlockSchema>;
 
 type LockerUnlockFormProps = {
   type: 'client' | 'operator';
-  onSucess: (locker: Locker, password: string) => void;
+  onSucess: (locker: Locker & { loaded: boolean }, password: string) => void;
 };
 
 const LockerUnlockForm: FunctionComponent<LockerUnlockFormProps> = ({ onSucess, type }) => {

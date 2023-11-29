@@ -6,6 +6,7 @@ import { Mailer } from '~/server/mailer';
 import { memoryDb } from '~/server/memory-db';
 import { LockerStatus } from '~/interfaces/Locker';
 import { TRPCError } from '@trpc/server';
+import { UserRole } from '@prisma/client';
 
 export const reservationRouter = createTRPCRouter({
   create: protectedProcedure
@@ -30,7 +31,7 @@ export const reservationRouter = createTRPCRouter({
         }),
       })
     )
-    .mutation(async ({ ctx: { db }, input }) => {
+    .mutation(async ({ ctx: { db, session }, input }) => {
       const station = memoryDb.stations?.find(({ stationId }) => stationId === input.stationId);
       if (!station) throw new TRPCError({ code: 'NOT_FOUND' });
 
@@ -43,6 +44,7 @@ export const reservationRouter = createTRPCRouter({
         where: {
           confirmed: false,
           expired: false,
+          loaded: false,
           stationId: input.stationId,
         },
         orderBy: {
@@ -51,6 +53,7 @@ export const reservationRouter = createTRPCRouter({
         take: 1,
       });
 
+      // TODO VER BIEN SI EL ESTADO DEL LOCKER CAMBIA
       const { expiredReservationIds, availableLockerIds } = station.lockers.reduce<{ expiredReservationIds: number[]; availableLockerIds: string[] }>(
         (lockers, locker) => {
           if (input.height <= locker.sizes.height && input.width <= locker.sizes.width && input.depth <= locker.sizes.depth) {
@@ -106,9 +109,11 @@ export const reservationRouter = createTRPCRouter({
           operatorEmail: input.operatorEmail,
           confirmed: false,
           expired: false,
+          loaded: false,
           completed: false,
           operatorPassword,
           clientPassword,
+          createdById: session.user.id,
         },
       });
 
@@ -155,6 +160,7 @@ export const reservationRouter = createTRPCRouter({
           confirmed: false,
           completed: false,
           expired: false,
+          ...(session.user.role === UserRole.ADMIN ? {} : { createdById: session.user.id }),
         },
       });
 
@@ -163,7 +169,7 @@ export const reservationRouter = createTRPCRouter({
           confirmed: true,
         },
         where: {
-          id: input.id,
+          id: reservation.id,
         },
       });
 
