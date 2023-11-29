@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import crypto from 'crypto';
 
-import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '~/server/api/trpc';
 import { Mailer } from '~/server/mailer';
 import { memoryDb } from '~/server/memory-db';
 import { LockerStatus } from '~/interfaces/Locker';
@@ -187,7 +187,7 @@ export const reservationRouter = createTRPCRouter({
       };
     }),
 
-  confirmOperator: protectedProcedure
+  confirmOperator: publicProcedure
     .meta({ openapi: { method: 'POST', path: '/reservation/confirm-operator' } })
     .input(
       z.object({
@@ -217,7 +217,7 @@ export const reservationRouter = createTRPCRouter({
         })
         .or(z.object({ expired: z.literal(true) }))
     )
-    .mutation(async ({ ctx: { db, session }, input }) => {
+    .mutation(async ({ ctx: { db }, input }) => {
       const reservation = await db.reservation.findFirstOrThrow({
         select: {
           id: true,
@@ -235,7 +235,6 @@ export const reservationRouter = createTRPCRouter({
           confirmed_operator: false,
           completed: false,
           expired: false,
-          ...(session.user.role === UserRole.ADMIN ? {} : { createdById: session.user.id }),
         },
       });
 
