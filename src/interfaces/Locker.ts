@@ -1,5 +1,5 @@
 export interface Locker {
-  nickname: string;
+  nickname: number;
   state: LockerStatus;
   isOpen: boolean;
   isEmpty: boolean;

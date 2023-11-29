@@ -13,7 +13,7 @@ export const reservationRouter = createTRPCRouter({
     .meta({ openapi: { method: 'POST', path: '/reservation' } })
     .input(
       z.object({
-        stationId: z.string(),
+        stationName: z.string(),
         operatorEmail: z.string().email(),
         clientEmail: z.string().email(),
         height: z.number().positive(),
@@ -25,14 +25,14 @@ export const reservationRouter = createTRPCRouter({
       z.object({
         reservation: z.object({
           id: z.number(),
-          stationId: z.string(),
-          lockerId: z.string(),
+          stationName: z.string(),
+          lockerId: z.number(),
           status: z.nativeEnum(LockerStatus),
         }),
       })
     )
     .mutation(async ({ ctx: { db, session }, input }) => {
-      const station = memoryDb.stations?.find(({ stationId }) => stationId === input.stationId);
+      const station = memoryDb.stations?.find(({ stationName }) => stationName === input.stationName);
       if (!station) throw new TRPCError({ code: 'NOT_FOUND' });
 
       const reservations = await db.reservation.findMany({
@@ -45,32 +45,26 @@ export const reservationRouter = createTRPCRouter({
           confirmed: false,
           expired: false,
           loaded: false,
-          stationId: input.stationId,
+          stationName: input.stationName,
         },
         orderBy: {
           createdAt: 'asc',
         },
-        take: 1,
       });
 
-      // TODO VER BIEN SI EL ESTADO DEL LOCKER CAMBIA
-      const { expiredReservationIds, availableLockerIds } = station.lockers.reduce<{ expiredReservationIds: number[]; availableLockerIds: string[] }>(
+      const { expiredReservationIds, availableLockerIds } = station.lockers.reduce<{ expiredReservationIds: number[]; availableLockerIds: number[] }>(
         (lockers, locker) => {
           if (input.height <= locker.sizes.height && input.width <= locker.sizes.width && input.depth <= locker.sizes.depth) {
-            if (locker.state === LockerStatus.RESERVED) {
-              const reservation = reservations.find(({ lockerId }) => lockerId === locker.nickname);
+            const reservation = reservations.find(({ lockerId }) => lockerId === locker.nickname);
 
-              if (reservation) {
-                const isReservationExpired = new Date(reservation.createdAt.getTime() + 15 * 60 * 1000).getTime() < new Date().getTime();
+            if (reservation) {
+              const isReservationExpired = new Date(reservation.createdAt.getTime() + 15 * 60 * 1000).getTime() < new Date().getTime();
 
-                if (isReservationExpired) {
-                  lockers.expiredReservationIds.push(reservation.id);
-                  lockers.availableLockerIds.push(locker.nickname);
-                }
+              if (isReservationExpired) {
+                lockers.expiredReservationIds.push(reservation.id);
+                lockers.availableLockerIds.push(locker.nickname);
               }
-            }
-
-            if (locker.state === LockerStatus.AVAILABLE) {
+            } else {
               lockers.availableLockerIds.push(locker.nickname);
             }
           }
@@ -103,7 +97,7 @@ export const reservationRouter = createTRPCRouter({
 
       const reservation = await db.reservation.create({
         data: {
-          stationId: input.stationId,
+          stationName: input.stationName,
           lockerId,
           clientEmail: input.clientEmail,
           operatorEmail: input.operatorEmail,
@@ -120,7 +114,7 @@ export const reservationRouter = createTRPCRouter({
       return {
         reservation: {
           id: reservation.id,
-          stationId: input.stationId,
+          stationName: input.stationName,
           lockerId,
           status: LockerStatus.RESERVED,
         },
@@ -138,8 +132,8 @@ export const reservationRouter = createTRPCRouter({
       z.object({
         reservation: z.object({
           id: z.number(),
-          stationId: z.string(),
-          lockerId: z.string(),
+          stationName: z.string(),
+          lockerId: z.number(),
           status: z.nativeEnum(LockerStatus),
         }),
       })
@@ -148,7 +142,7 @@ export const reservationRouter = createTRPCRouter({
       const reservation = await db.reservation.findUniqueOrThrow({
         select: {
           id: true,
-          stationId: true,
+          stationName: true,
           lockerId: true,
           operatorEmail: true,
           operatorPassword: true,
@@ -177,8 +171,8 @@ export const reservationRouter = createTRPCRouter({
         .sendEmail({
           to: session.user.email,
           subject: '¡Reserva Confirmada (Operario)!',
-          text: `Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.`,
-          html: `<p>Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.</p>`,
+          text: `Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.`,
+          html: `<p>Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.</p>`,
         })
         .catch((err) => console.log(err));
 
@@ -186,8 +180,8 @@ export const reservationRouter = createTRPCRouter({
         .sendEmail({
           to: reservation.clientEmail,
           subject: '¡Reserva Confirmada (Cliente)!',
-          text: `Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.`,
-          html: `<p>Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.</p>`,
+          text: `Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.`,
+          html: `<p>Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.</p>`,
         })
         .catch((err) => console.log(err));
 
@@ -196,7 +190,7 @@ export const reservationRouter = createTRPCRouter({
       return {
         reservation: {
           id: reservation.id,
-          stationId: reservation.stationId,
+          stationName: reservation.stationName,
           lockerId: reservation.lockerId,
           status: LockerStatus.CONFIRMED,
         },

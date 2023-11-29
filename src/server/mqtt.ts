@@ -12,6 +12,9 @@ export class MQTTClient {
         username: env.MQTT_USER_NAME,
         password: env.MQTT_PASSWORD,
         port: env.MQTT_PORT,
+        protocolVersion: 5,
+        rejectUnauthorized: false,
+        clientId: '',
       });
 
       this.setupEventHandlers();

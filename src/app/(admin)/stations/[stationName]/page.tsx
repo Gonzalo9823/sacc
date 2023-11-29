@@ -5,19 +5,19 @@ import ReloadDataButton from '~/components/reload-data-button';
 import { getServerAuthSession } from '~/server/auth';
 import { api } from '~/trpc/server';
 
-export function generateMetadata({ params }: { params: { stationId: string } }): Metadata {
+export function generateMetadata({ params }: { params: { stationName: string } }): Metadata {
   return {
-    title: `Estación: ${params.stationId}`,
+    title: `Estación: ${params.stationName}`,
     description: 'Locker Hub',
     icons: [{ rel: 'icon', url: '/favicon.ico' }],
   };
 }
 
-export default async function Station({ params: { stationId } }: { params: { stationId: string } }) {
+export default async function Station({ params: { stationName } }: { params: { stationName: string } }) {
   const session = await getServerAuthSession();
   if (!session) redirect('/');
 
-  const { station } = await api.station.get.query({ id: stationId });
+  const { station } = await api.station.get.query({ id: stationName });
 
   return (
     <div className="mx-auto mt-8 flow-root space-y-4 px-4 sm:px-0">

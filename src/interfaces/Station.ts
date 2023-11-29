@@ -1,6 +1,7 @@
 import type { Locker } from '~/interfaces/Locker';
 
 export interface Station {
-  stationId: string;
+  stationName: string;
+  address: string;
   lockers: Locker[];
 }

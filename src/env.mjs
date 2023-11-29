@@ -18,7 +18,7 @@ export const env = createEnv({
     MQTT_BROKER_URL: z.string().url(),
     MQTT_USER_NAME: z.string(),
     MQTT_PASSWORD: z.string(),
-    MQTT_PORT: z.coerce.number()
+    MQTT_PORT: z.coerce.number(),
   },
 
   client: {
@@ -35,7 +35,7 @@ export const env = createEnv({
     MQTT_BROKER_URL: process.env.MQTT_BROKER_URL,
     MQTT_USER_NAME: process.env.MQTT_USER_NAME,
     MQTT_PASSWORD: process.env.MQTT_PASSWORD,
-    MQTT_PORT: process.env.MQTT_PORT
+    MQTT_PORT: process.env.MQTT_PORT,
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

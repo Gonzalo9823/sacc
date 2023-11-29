@@ -12,10 +12,10 @@ export const stationRouter = createTRPCRouter({
       z.object({
         stations: z.array(
           z.object({
-            stationId: z.string(),
+            stationName: z.string(),
             lockers: z.array(
               z.object({
-                nickname: z.string(),
+                nickname: z.number(),
                 state: z.nativeEnum(LockerStatus),
                 isOpen: z.boolean(),
                 isEmpty: z.boolean(),
@@ -42,10 +42,10 @@ export const stationRouter = createTRPCRouter({
     .output(
       z.object({
         station: z.object({
-          stationId: z.string(),
+          stationName: z.string(),
           lockers: z.array(
             z.object({
-              nickname: z.string(),
+              nickname: z.number(),
               state: z.nativeEnum(LockerStatus),
               isOpen: z.boolean(),
               isEmpty: z.boolean(),
@@ -60,7 +60,7 @@ export const stationRouter = createTRPCRouter({
       })
     )
     .query(({ input }) => {
-      const station = memoryDb.stations?.find(({ stationId }) => stationId === input.id);
+      const station = memoryDb.stations?.find(({ stationName }) => stationName === input.id);
 
       if (!station) {
         throw new TRPCError({ code: 'NOT_FOUND' });

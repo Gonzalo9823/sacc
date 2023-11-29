@@ -7,34 +7,34 @@ export async function register() {
     const { MQTTClient } = await import('~/server/mqtt');
     const mqtt = new MQTTClient();
 
-    mqtt.subscribe('TEST/DETAIL');
+    mqtt.subscribe('status');
 
     mqtt.onMessage((topic, message) => {
       try {
         switch (topic) {
-          case 'TEST/DETAIL': {
+          case 'status': {
             const station = JSON.parse(message.toString()) as {
-              station_id: string;
+              station_name: string;
+              address: string;
               lockers: {
-                nickname: string;
-                state: string;
+                nickname: number;
+                state: 0 | 1 | 2 | 3 | 4 | 5;
                 is_open: boolean;
                 is_empty: boolean;
-                sizes: string;
+                size: string;
               }[];
             };
 
             const parsedStation: Station = {
-              stationId: station.station_id,
+              stationName: station.station_name,
+              address: station.address,
               lockers: station.lockers.map((locker) => {
-                const sizes = locker.sizes.replace('[', '').replace(']', '').split('x');
+                const sizes = locker.size.replace('[', '').replace(']', '').split('x');
 
                 return {
                   nickname: locker.nickname,
                   state: (() => {
-                    const parsedState = parseInt(locker.state) as 0 | 1 | 2 | 3 | 4 | 5;
-
-                    switch (parsedState) {
+                    switch (locker.state) {
                       case 0:
                         return LockerStatus.AVAILABLE;
 
@@ -67,7 +67,7 @@ export async function register() {
 
             if (!memoryDb.stations) memoryDb.stations = [];
 
-            const alreadyAddedStationIdx = memoryDb.stations.findIndex(({ stationId }) => stationId === parsedStation.stationId);
+            const alreadyAddedStationIdx = memoryDb.stations.findIndex(({ stationName }) => stationName === parsedStation.stationName);
 
             if (alreadyAddedStationIdx >= 0) {
               memoryDb.stations[alreadyAddedStationIdx] = parsedStation;
@@ -92,6 +92,7 @@ export async function register() {
             break;
         }
       } catch (err) {
+        console.log(err);
         console.log(`There was an error on topic ${topic}`);
       }
     });

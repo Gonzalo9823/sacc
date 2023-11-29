@@ -17,7 +17,7 @@ export const lockerRouter = createTRPCRouter({
     .output(
       z.object({
         locker: z.object({
-          nickname: z.string(),
+          nickname: z.number(),
           loaded: z.boolean(),
           state: z.nativeEnum(LockerStatus),
           isOpen: z.boolean(),
@@ -33,7 +33,7 @@ export const lockerRouter = createTRPCRouter({
     .mutation(async ({ ctx: { db }, input }) => {
       const reservation = await db.reservation.findFirstOrThrow({
         select: {
-          stationId: true,
+          stationName: true,
           lockerId: true,
           loaded: true,
         },
@@ -53,7 +53,7 @@ export const lockerRouter = createTRPCRouter({
               },
       });
 
-      const station = memoryDb.stations?.find(({ stationId }) => stationId === reservation.stationId);
+      const station = memoryDb.stations?.find(({ stationName }) => stationName === reservation.stationName);
       const locker = station?.lockers.find(({ nickname }) => nickname === reservation.lockerId);
 
       if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
@@ -72,7 +72,7 @@ export const lockerRouter = createTRPCRouter({
     .output(
       z.object({
         locker: z.object({
-          nickname: z.string(),
+          nickname: z.number(),
           state: z.nativeEnum(LockerStatus),
           isOpen: z.boolean(),
           isEmpty: z.boolean(),
@@ -88,7 +88,7 @@ export const lockerRouter = createTRPCRouter({
       const reservation = await db.reservation.findFirstOrThrow({
         select: {
           id: true,
-          stationId: true,
+          stationName: true,
           lockerId: true,
         },
         where:
@@ -109,7 +109,7 @@ export const lockerRouter = createTRPCRouter({
               },
       });
 
-      const station = memoryDb.stations?.find(({ stationId }) => stationId === reservation.stationId);
+      const station = memoryDb.stations?.find(({ stationName }) => stationName === reservation.stationName);
       const locker = station?.lockers.find(({ nickname }) => nickname === reservation.lockerId);
 
       if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
