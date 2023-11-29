@@ -87,8 +87,6 @@ export const reservationRouter = createTRPCRouter({
         });
       }
 
-      // TODO UPDATE LOCKER STATE
-
       const lockerId = availableLockerIds.at(0);
       if (!lockerId) throw new TRPCError({ code: 'NOT_FOUND' });
 
@@ -175,17 +173,6 @@ export const reservationRouter = createTRPCRouter({
           html: `<p>Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.</p>`,
         })
         .catch((err) => console.log(err));
-
-      await new Mailer()
-        .sendEmail({
-          to: reservation.clientEmail,
-          subject: '¡Reserva Confirmada (Cliente)!',
-          text: `Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.`,
-          html: `<p>Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.</p>`,
-        })
-        .catch((err) => console.log(err));
-
-      // TODO UPDATE LOCKER TO UPDATED
 
       return {
         reservation: {

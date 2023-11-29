@@ -43,6 +43,10 @@ export class MQTTClient {
     });
   }
 
+  async publishAsync(topic: string, message: string) {
+    await this.client.publishAsync(topic, message, {});
+  }
+
   subscribe(topic: string) {
     this.client.subscribe(topic, {}, (error) => {
       if (error) {

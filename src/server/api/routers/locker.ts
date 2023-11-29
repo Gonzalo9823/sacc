@@ -4,6 +4,8 @@ import { createTRPCRouter, publicProcedure } from '~/server/api/trpc';
 import { memoryDb } from '~/server/memory-db';
 import { LockerStatus } from '~/interfaces/Locker';
 import { TRPCError } from '@trpc/server';
+import { Mailer } from '~/server/mailer';
+import { MQTTClient } from '~/server/mqtt';
 
 export const lockerRouter = createTRPCRouter({
   get: publicProcedure
@@ -88,6 +90,8 @@ export const lockerRouter = createTRPCRouter({
       const reservation = await db.reservation.findFirstOrThrow({
         select: {
           id: true,
+          clientEmail: true,
+          clientPassword: true,
           stationName: true,
           lockerId: true,
         },
@@ -114,7 +118,11 @@ export const lockerRouter = createTRPCRouter({
 
       if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
 
-      // TODO SEND OPEN
+      await new MQTTClient().publishAsync(
+        input.type === 'operator' ? 'load' : 'unload',
+        JSON.stringify({ station_name: station?.stationName, nickname: locker.nickname })
+      );
+
       await db.reservation.update({
         data: {
           loaded: true,
@@ -124,6 +132,17 @@ export const lockerRouter = createTRPCRouter({
           id: reservation.id,
         },
       });
+
+      if (input.type === 'operator') {
+        await new Mailer()
+          .sendEmail({
+            to: reservation.clientEmail,
+            subject: '¡Reserva Confirmada (Cliente)!',
+            text: `Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.`,
+            html: `<p>Se confirmo la reserva en la estación ${reservation.stationName}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.</p>`,
+          })
+          .catch((err) => console.log(err));
+      }
 
       return { locker };
     }),
