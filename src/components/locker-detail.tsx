@@ -1,12 +1,42 @@
-import type { FunctionComponent } from 'react';
+'use client';
 
+import { useRouter } from 'next/router';
+import type { FunctionComponent } from 'react';
+import toast from 'react-hot-toast';
 import type { Locker } from '~/interfaces/Locker';
+import { api } from '~/trpc/react';
 
 type LockerDetailProps = {
   locker: Locker;
+  type: 'client' | 'operator';
+  password: string;
 };
 
-const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker }) => {
+const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker, password, type }) => {
+  const { isLoading, mutateAsync } = api.locker.open.useMutation();
+  const router = useRouter();
+
+  const handleOpen = async () => {
+    let opened = false;
+
+    try {
+      await toast.promise(mutateAsync({ password, type }), {
+        loading: 'Abriendo...',
+        success: () => {
+          opened = true;
+          return '¡Abierto!';
+        },
+        error: 'Hubo un error abriendo...',
+      });
+    } catch (err) {
+      // Nothing
+    }
+
+    if (opened) {
+      await router.push('/');
+    }
+  };
+
   return (
     <div>
       <div className="bg-gray-100 px-4 py-2">
@@ -49,6 +79,8 @@ const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker }) => {
       <button
         type="submit"
         className="mt-6 flex w-full items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
+        onClick={() => handleOpen()}
+        disabled={isLoading}
       >
         Desbloquear
       </button>

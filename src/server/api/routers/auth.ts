@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { stringify } from 'qs';
 import { z } from 'zod';
 import { env } from '~/env.mjs';
@@ -32,8 +33,12 @@ export const authRouter = createTRPCRouter({
         method: 'POST',
       });
 
-      return {
-        token: credentialsResponse.headers.getSetCookie()[1]!.split('=')[1]!.split(';')[0]!,
-      };
+      try {
+        return {
+          token: credentialsResponse.headers.getSetCookie()[1]!.split('=')[1]!.split(';')[0]!,
+        };
+      } catch (err) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
     }),
 });

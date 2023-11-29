@@ -1,6 +1,6 @@
 export interface Locker {
   nickname: string;
-  state: string;
+  state: LockerStatus;
   isOpen: boolean;
   isEmpty: boolean;
   sizes: {
@@ -8,4 +8,13 @@ export interface Locker {
     width: number;
     depth: number;
   };
+}
+
+export enum LockerStatus {
+  AVAILABLE = 'Disponible',
+  RESERVED = 'Reservado',
+  CONFIRMED = 'Confirmado',
+  LOADING = 'Cargando',
+  USED = 'Usado',
+  UNLOADING = 'Descargando',
 }

@@ -1,5 +1,6 @@
 import { memoryDb } from '~/server/memory-db';
 import type { Station } from '~/interfaces/Station';
+import { LockerStatus } from '~/interfaces/Locker';
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
@@ -30,7 +31,29 @@ export async function register() {
 
                 return {
                   nickname: locker.nickname,
-                  state: locker.state,
+                  state: (() => {
+                    const parsedState = parseInt(locker.state) as 0 | 1 | 2 | 3 | 4 | 5;
+
+                    switch (parsedState) {
+                      case 0:
+                        return LockerStatus.AVAILABLE;
+
+                      case 1:
+                        return LockerStatus.RESERVED;
+
+                      case 2:
+                        return LockerStatus.CONFIRMED;
+
+                      case 3:
+                        return LockerStatus.LOADING;
+
+                      case 4:
+                        return LockerStatus.USED;
+
+                      case 5:
+                        return LockerStatus.UNLOADING;
+                    }
+                  })(),
                   isOpen: locker.is_open,
                   isEmpty: locker.is_empty,
                   sizes: {

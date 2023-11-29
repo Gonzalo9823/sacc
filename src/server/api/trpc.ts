@@ -11,6 +11,7 @@ import { getSession } from 'next-auth/react';
 
 import { getHTTPServerAuthSession, getServerAuthSession } from '~/server/auth';
 import { db } from '~/server/db';
+import { UserRole } from '@prisma/client';
 
 export const createTRPCContext = async (opts: { req: NextRequest }) => {
   const session = await getServerAuthSession();
@@ -76,6 +77,23 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   });
 });
 
+const enforceUserIsAdmin = t.middleware(({ ctx, next }) => {
+  if (!ctx.session || !ctx.session.user) {
+    throw new TRPCError({ code: 'UNAUTHORIZED' });
+  }
+
+  if (ctx.session.user.role !== UserRole.ADMIN) {
+    throw new TRPCError({ code: 'UNAUTHORIZED' });
+  }
+
+  return next({
+    ctx: {
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
+
 export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+export const adminProcedure = t.procedure.use(enforceUserIsAdmin);

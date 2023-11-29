@@ -5,6 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { api } from '~/trpc/react';
+import type { Locker } from '~/interfaces/Locker';
 
 const LockerUnlockSchema = z.object({
   password: z.string().trim().min(1),
@@ -14,10 +16,10 @@ type LockerUnlockValues = z.infer<typeof LockerUnlockSchema>;
 
 type LockerUnlockFormProps = {
   type: 'client' | 'operator';
-  onSucess: () => void;
+  onSucess: (locker: Locker, password: string) => void;
 };
 
-const LockerUnlockForm: FunctionComponent<LockerUnlockFormProps> = ({ onSucess }) => {
+const LockerUnlockForm: FunctionComponent<LockerUnlockFormProps> = ({ onSucess, type }) => {
   const {
     register,
     handleSubmit,
@@ -26,20 +28,26 @@ const LockerUnlockForm: FunctionComponent<LockerUnlockFormProps> = ({ onSucess }
     resolver: zodResolver(LockerUnlockSchema),
   });
 
-  const onSubmit = async (_values: LockerUnlockValues) => {
-    let validated = false;
+  const { mutateAsync } = api.locker.get.useMutation();
 
-    await toast.promise(new Promise((f) => setTimeout(f, 2000)), {
-      loading: 'Validando...',
-      success: () => {
-        validated = true;
-        return '¡Validado!';
-      },
-      error: 'Hubo un error validando...',
-    });
+  const onSubmit = async ({ password }: LockerUnlockValues) => {
+    let locker: Locker | undefined = undefined;
 
-    if (validated) {
-      onSucess();
+    try {
+      await toast.promise(mutateAsync({ password, type }), {
+        loading: 'Validando...',
+        success: (data) => {
+          locker = data.locker;
+          return '¡Validado!';
+        },
+        error: 'Hubo un error validando...',
+      });
+    } catch (err) {
+      // Nothing
+    }
+
+    if (locker) {
+      onSucess(locker, password);
     }
   };
 

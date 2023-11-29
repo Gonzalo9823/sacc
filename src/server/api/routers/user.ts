@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
-import { UserRole } from '@prisma/client';
+import { createTRPCRouter, adminProcedure } from '~/server/api/trpc';
 
 export const userRouter = createTRPCRouter({
-  getMany: protectedProcedure
+  getMany: adminProcedure
     .meta({ openapi: { method: 'GET', path: '/users' } })
     .input(z.void())
     .output(
@@ -17,9 +16,7 @@ export const userRouter = createTRPCRouter({
           .array(),
       })
     )
-    .query(async ({ ctx: { db, session } }) => {
-      if (session.user.role !== UserRole.ADMIN) throw new Error('Not authorized.');
-
+    .query(async ({ ctx: { db } }) => {
       const users = await db.user.findMany({
         select: {
           id: true,
@@ -31,7 +28,7 @@ export const userRouter = createTRPCRouter({
       return { users };
     }),
 
-  get: protectedProcedure
+  get: adminProcedure
     .meta({ openapi: { method: 'GET', path: '/users/{id}' } })
     .input(z.object({ id: z.number() }))
     .output(
@@ -45,9 +42,7 @@ export const userRouter = createTRPCRouter({
           .array(),
       })
     )
-    .query(async ({ ctx: { db, session } }) => {
-      if (session.user.role !== UserRole.ADMIN) throw new Error('Not authorized.');
-
+    .query(async ({ ctx: { db } }) => {
       const users = await db.user.findMany({
         select: {
           id: true,

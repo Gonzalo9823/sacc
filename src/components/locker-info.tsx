@@ -3,33 +3,20 @@
 import { useState, type FunctionComponent } from 'react';
 import LockerUnlockForm from '~/components/locker-unlock-form';
 import LockerDetail from '~/components/locker-detail';
+import type { Locker } from '~/interfaces/Locker';
 
 type LockerInfoProps = {
   type: 'client' | 'operator';
 };
 
 const LockerInfo: FunctionComponent<LockerInfoProps> = ({ type }) => {
-  const [isUnlocked, setIsUnLocked] = useState(false);
+  const [lockerData, setLockerData] = useState<{ locker: Locker; password: string }>();
 
-  if (isUnlocked) {
-    return (
-      <LockerDetail
-        locker={{
-          nickname: 'Test1',
-          state: 'Reservado',
-          isOpen: false,
-          isEmpty: true,
-          sizes: {
-            height: 10,
-            width: 10,
-            depth: 10,
-          },
-        }}
-      />
-    );
+  if (lockerData) {
+    return <LockerDetail locker={lockerData.locker} password={lockerData.password} type={type} />;
   }
 
-  return <LockerUnlockForm type={type} onSucess={() => setIsUnLocked(true)} />;
+  return <LockerUnlockForm type={type} onSucess={(locker, password) => setLockerData({ locker, password })} />;
 };
 
 export default LockerInfo;

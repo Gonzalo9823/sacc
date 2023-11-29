@@ -1,125 +1,81 @@
 import { z } from 'zod';
-import { UserRole, LockerStatus } from '@prisma/client';
 import crypto from 'crypto';
 
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
 import { Mailer } from '~/server/mailer';
-import { MQTTClient } from '~/server/mqtt';
+import { memoryDb } from '~/server/memory-db';
+import { LockerStatus } from '~/interfaces/Locker';
+import { TRPCError } from '@trpc/server';
 
 export const reservationRouter = createTRPCRouter({
   create: protectedProcedure
     .meta({ openapi: { method: 'POST', path: '/reservation' } })
     .input(
       z.object({
-        stationId: z.number().int().positive(),
+        stationId: z.string(),
+        operatorEmail: z.string().email(),
         clientEmail: z.string().email(),
         height: z.number().positive(),
         width: z.number().positive(),
+        depth: z.number().positive(),
       })
     )
     .output(
       z.object({
         reservation: z.object({
           id: z.number(),
-          stationId: z.number(),
-          lockerId: z.number(),
+          stationId: z.string(),
+          lockerId: z.string(),
           status: z.nativeEnum(LockerStatus),
         }),
       })
     )
-    .mutation(async ({ ctx: { db, session }, input }) => {
-      const client = new MQTTClient();
+    .mutation(async ({ ctx: { db }, input }) => {
+      const station = memoryDb.stations?.find(({ stationId }) => stationId === input.stationId);
+      if (!station) throw new TRPCError({ code: 'NOT_FOUND' });
 
-      // Create json to send
-      const json = JSON.stringify({
-        stationId: input.stationId,
-        lockerId: 1,
-        status: LockerStatus.RESERVED,
-      });
-
-      client.publish('pds_public_broker', '');
-
-      const station = await db.station.findUniqueOrThrow({
-        include: {
-          lockers: {
-            include: {
-              reservations: {
-                where: {
-                  confirmed: false,
-                },
-                take: 1,
-                orderBy: {
-                  createdAt: 'asc',
-                },
-              },
-            },
-            where: {
-              OR: [
-                {
-                  status: LockerStatus.EMPTY,
-                },
-                {
-                  status: LockerStatus.RESERVED,
-                },
-              ],
-              available: true,
-              height: { gte: input.height },
-              width: { gte: input.width },
-            },
-            orderBy: [{ id: 'asc' }, { height: 'asc' }, { width: 'asc' }],
-          },
+      const reservations = await db.reservation.findMany({
+        select: {
+          id: true,
+          lockerId: true,
+          createdAt: true,
         },
         where: {
-          id: input.stationId,
-          ...(session.user.role === UserRole.ADMIN
-            ? {}
-            : {
-                allowedForUsers: {
-                  some: {
-                    userId: session.user.id,
-                  },
-                },
-              }),
+          confirmed: false,
+          expired: false,
+          stationId: input.stationId,
         },
+        orderBy: {
+          createdAt: 'asc',
+        },
+        take: 1,
       });
 
-      const { expiredLockerIds, expiredReservationIds, availableLockerIds } = station.lockers.reduce<{
-        expiredLockerIds: number[];
-        expiredReservationIds: number[];
-        availableLockerIds: number[];
-      }>(
+      const { expiredReservationIds, availableLockerIds } = station.lockers.reduce<{ expiredReservationIds: number[]; availableLockerIds: string[] }>(
         (lockers, locker) => {
-          if (locker.status === LockerStatus.RESERVED) {
-            const isReservationExpired = new Date(locker.reservations.at(0)!.createdAt.getTime() + 15 * 60 * 1000).getTime() < new Date().getTime();
+          if (input.height <= locker.sizes.height && input.width <= locker.sizes.width && input.depth <= locker.sizes.depth) {
+            if (locker.state === LockerStatus.RESERVED) {
+              const reservation = reservations.find(({ lockerId }) => lockerId === locker.nickname);
 
-            if (isReservationExpired) {
-              lockers.expiredLockerIds.push(locker.id);
-              lockers.expiredReservationIds.push(locker.reservations.at(0)!.id);
-              lockers.availableLockerIds.push(locker.id);
+              if (reservation) {
+                const isReservationExpired = new Date(reservation.createdAt.getTime() + 15 * 60 * 1000).getTime() < new Date().getTime();
+
+                if (isReservationExpired) {
+                  lockers.expiredReservationIds.push(reservation.id);
+                  lockers.availableLockerIds.push(locker.nickname);
+                }
+              }
             }
-          }
 
-          if (locker.status === LockerStatus.EMPTY) {
-            lockers.availableLockerIds.push(locker.id);
+            if (locker.state === LockerStatus.AVAILABLE) {
+              lockers.availableLockerIds.push(locker.nickname);
+            }
           }
 
           return lockers;
         },
-        { expiredLockerIds: [], expiredReservationIds: [], availableLockerIds: [] }
+        { expiredReservationIds: [], availableLockerIds: [] }
       );
-
-      if (expiredLockerIds.length > 0) {
-        await db.locker.updateMany({
-          data: {
-            status: LockerStatus.EMPTY,
-          },
-          where: {
-            id: {
-              in: expiredLockerIds,
-            },
-          },
-        });
-      }
 
       if (expiredReservationIds.length > 0) {
         await db.reservation.updateMany({
@@ -134,66 +90,36 @@ export const reservationRouter = createTRPCRouter({
         });
       }
 
-      const lockerId = availableLockerIds.at(0);
+      // TODO UPDATE LOCKER STATE
 
-      if (!lockerId) {
-        throw new Error('Not available Locker.');
-      }
+      const lockerId = availableLockerIds.at(0);
+      if (!lockerId) throw new TRPCError({ code: 'NOT_FOUND' });
 
       const operatorPassword = crypto.randomBytes(10).toString('hex');
       const clientPassword = crypto.randomBytes(10).toString('hex');
 
-      try {
-        const reservation = await db.$transaction(async (prisma) => {
-          await prisma.locker.update({
-            data: {
-              status: LockerStatus.RESERVED,
-            },
-            where: {
-              id: lockerId,
-            },
-          });
+      const reservation = await db.reservation.create({
+        data: {
+          stationId: input.stationId,
+          lockerId,
+          clientEmail: input.clientEmail,
+          operatorEmail: input.operatorEmail,
+          confirmed: false,
+          expired: false,
+          completed: false,
+          operatorPassword,
+          clientPassword,
+        },
+      });
 
-          const reservation = await prisma.reservation.create({
-            include: {
-              locker: {
-                select: {
-                  id: true,
-                  height: true,
-                  width: true,
-                  status: true,
-                  available: true,
-                },
-              },
-            },
-            data: {
-              lockerId,
-              reservedById: session.user.id,
-              clientEmail: input.clientEmail,
-              confirmed: false,
-              completed: false,
-              expired: false,
-              operatorPassword,
-              clientPassword,
-            },
-          });
-
-          return reservation;
-        });
-
-        return {
-          reservation: {
-            id: reservation.id,
-            stationId: input.stationId,
-            lockerId,
-            status: LockerStatus.RESERVED,
-          },
-        };
-      } catch (err) {
-        console.log(err);
-      }
-
-      throw new Error('There was an error making the reservation.');
+      return {
+        reservation: {
+          id: reservation.id,
+          stationId: input.stationId,
+          lockerId,
+          status: LockerStatus.RESERVED,
+        },
+      };
     }),
 
   confirm: protectedProcedure
@@ -207,77 +133,67 @@ export const reservationRouter = createTRPCRouter({
       z.object({
         reservation: z.object({
           id: z.number(),
-          stationId: z.number(),
-          lockerId: z.number(),
+          stationId: z.string(),
+          lockerId: z.string(),
           status: z.nativeEnum(LockerStatus),
         }),
       })
     )
     .mutation(async ({ ctx: { db, session }, input }) => {
       const reservation = await db.reservation.findUniqueOrThrow({
-        include: {
-          locker: true,
+        select: {
+          id: true,
+          stationId: true,
+          lockerId: true,
+          operatorEmail: true,
+          operatorPassword: true,
+          clientEmail: true,
+          clientPassword: true,
         },
         where: {
           id: input.id,
           confirmed: false,
           completed: false,
           expired: false,
-          reservedById: session.user.id,
         },
       });
 
-      try {
-        await db.$transaction(async (prisma) => {
-          await prisma.locker.update({
-            data: {
-              status: LockerStatus.CONFIRMED,
-            },
-            where: {
-              id: reservation.lockerId,
-            },
-          });
+      await db.reservation.update({
+        data: {
+          confirmed: true,
+        },
+        where: {
+          id: input.id,
+        },
+      });
 
-          await prisma.reservation.update({
-            data: {
-              confirmed: true,
-            },
-            where: {
-              id: input.id,
-            },
-          });
-        });
+      await new Mailer()
+        .sendEmail({
+          to: session.user.email,
+          subject: '¡Reserva Confirmada (Operario)!',
+          text: `Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.`,
+          html: `<p>Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.</p>`,
+        })
+        .catch((err) => console.log(err));
 
-        await new Mailer()
-          .sendEmail({
-            to: session.user.email,
-            subject: '¡Reserva Confirmada (Operario)!',
-            text: `Se confirmo la reserva en la estación ${reservation.locker.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.`,
-            html: `<p>Se confirmo la reserva en la estación ${reservation.locker.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.operatorPassword}.</p>`,
-          })
-          .catch((err) => console.log(err));
+      await new Mailer()
+        .sendEmail({
+          to: reservation.clientEmail,
+          subject: '¡Reserva Confirmada (Cliente)!',
+          text: `Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.`,
+          html: `<p>Se confirmo la reserva en la estación ${reservation.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.</p>`,
+        })
+        .catch((err) => console.log(err));
 
-        await new Mailer()
-          .sendEmail({
-            to: reservation.clientEmail,
-            subject: '¡Reserva Confirmada (Cliente)!',
-            text: `Se confirmo la reserva en la estación ${reservation.locker.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.`,
-            html: `<p>Se confirmo la reserva en la estación ${reservation.locker.stationId}, locker ${reservation.lockerId} con contraseña ${reservation.clientPassword}.</p>`,
-          })
-          .catch((err) => console.log(err));
+      // TODO UPDATE LOCKER TO UPDATED
 
-        return {
-          reservation: {
-            id: reservation.id,
-            stationId: reservation.locker.stationId,
-            lockerId: reservation.lockerId,
-            status: LockerStatus.CONFIRMED,
-          },
-        };
-      } catch (err) {
-        console.log(err);
-      }
-
-      throw new Error('There was an error confirming the reservation.');
+      return {
+        reservation: {
+          id: reservation.id,
+          stationId: reservation.stationId,
+          lockerId: reservation.lockerId,
+          status: LockerStatus.CONFIRMED,
+        },
+      };
     }),
 });

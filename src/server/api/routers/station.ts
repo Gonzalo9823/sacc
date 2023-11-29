@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { LockerStatus } from '@prisma/client';
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
 import { memoryDb } from '~/server/memory-db';
+import { LockerStatus } from '~/interfaces/Locker';
+import { TRPCError } from '@trpc/server';
 
 export const stationRouter = createTRPCRouter({
   getMany: protectedProcedure
@@ -15,7 +16,7 @@ export const stationRouter = createTRPCRouter({
             lockers: z.array(
               z.object({
                 nickname: z.string(),
-                state: z.string(),
+                state: z.nativeEnum(LockerStatus),
                 isOpen: z.boolean(),
                 isEmpty: z.boolean(),
                 sizes: z.object({
@@ -45,7 +46,7 @@ export const stationRouter = createTRPCRouter({
           lockers: z.array(
             z.object({
               nickname: z.string(),
-              state: z.string(),
+              state: z.nativeEnum(LockerStatus),
               isOpen: z.boolean(),
               isEmpty: z.boolean(),
               sizes: z.object({
@@ -62,7 +63,7 @@ export const stationRouter = createTRPCRouter({
       const station = memoryDb.stations?.find(({ stationId }) => stationId === input.id);
 
       if (!station) {
-        throw new Error('Not Found.');
+        throw new TRPCError({ code: 'NOT_FOUND' });
       }
 
       return { station };
