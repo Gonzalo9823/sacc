@@ -29,15 +29,19 @@ const SignInForm: FunctionComponent = () => {
   const onSubmit = async ({ email, password }: SignInValues) => {
     let logged = false;
 
-    await toast.promise(signIn('credentials', { email, password, redirect: false }), {
-      loading: 'Iniciando Sesión...',
-      success: (data) => {
-        if (data?.status !== 200) throw new Error('');
-        logged = true;
-        return '¡Sesión Iniciada!';
-      },
-      error: 'Hubo un error Iniciando Sesión...',
-    });
+    try {
+      await toast.promise(signIn('credentials', { email, password, redirect: false }), {
+        loading: 'Iniciando Sesión...',
+        success: (data) => {
+          if (data?.status !== 200) throw new Error('');
+          logged = true;
+          return '¡Sesión Iniciada!';
+        },
+        error: 'Hubo un error Iniciando Sesión...',
+      });
+    } catch (err) {
+      // Err
+    }
 
     if (logged) {
       router.push('/stations');
