@@ -86,13 +86,59 @@ export const stationRouter = createTRPCRouter({
         }),
       })
     )
-    .query(({ input }) => {
+    .query(async ({ ctx: { db }, input }) => {
       const station = memoryDb.stations?.find(({ stationName }) => stationName === input.id);
 
       if (!station) {
         throw new TRPCError({ code: 'NOT_FOUND' });
       }
 
-      return { station };
+      const reservations = await db.reservation.findMany({
+        select: {
+          confirmed_client: true,
+          confirmed_operator: true,
+          loaded: true,
+          lockerId: true,
+        },
+        where: {
+          stationName: station.stationName,
+          completed: false,
+          expired: false,
+        },
+      });
+
+      return {
+        station: {
+          ...station,
+          lockers: station.lockers.map((locker) => {
+            const reservation = reservations.find(({ lockerId }) => lockerId === locker.nickname);
+
+            const state = (() => {
+              if (reservation?.loaded) {
+                return LockerStatus.USED;
+              }
+
+              if (reservation?.confirmed_operator) {
+                return LockerStatus.LOADING;
+              }
+
+              if (reservation?.confirmed_client === false) {
+                return LockerStatus.RESERVED;
+              }
+
+              if (reservation?.confirmed_client) {
+                return LockerStatus.CONFIRMED;
+              }
+
+              return LockerStatus.AVAILABLE;
+            })();
+
+            return {
+              ...locker,
+              state,
+            };
+          }),
+        },
+      };
     }),
 });

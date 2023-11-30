@@ -134,8 +134,7 @@ export const lockerRouter = createTRPCRouter({
 
       await db.reservation.update({
         data: {
-          loaded: true,
-          completed: input.type === 'client',
+          ...(input.type === 'operator' ? { loaded: true, loadedAt: new Date() } : { completed: true, completedAt: new Date() }),
         },
         where: {
           id: reservation.id,

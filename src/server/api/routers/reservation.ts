@@ -162,6 +162,7 @@ export const reservationRouter = createTRPCRouter({
       await db.reservation.update({
         data: {
           confirmed_client: true,
+          confirmedClientAt: new Date(),
         },
         where: {
           id: reservation.id,
@@ -247,6 +248,7 @@ export const reservationRouter = createTRPCRouter({
         await db.reservation.update({
           data: {
             confirmed_operator: true,
+            confirmedOperatorAt: new Date(),
           },
           where: {
             id: reservation.id,
@@ -326,6 +328,8 @@ export const reservationRouter = createTRPCRouter({
         await db.reservation.update({
           data: {
             lockerId,
+            confirmed_operator: true,
+            confirmedOperatorAt: new Date(),
           },
           where: {
             id: reservation.id,

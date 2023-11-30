@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import ReloadDataButton from '~/components/reload-data-button';
+import { LockerStatus } from '~/interfaces/Locker';
 import { getServerAuthSession } from '~/server/auth';
 import { api } from '~/trpc/server';
 
@@ -18,6 +19,26 @@ export default async function Station({ params: { stationName } }: { params: { s
   if (!session) redirect('/');
 
   const { station } = await api.station.get.query({ id: stationName });
+
+  const getLockerState = (state: LockerStatus) => {
+    if (state === LockerStatus.RESERVED) {
+      return 'Reservado';
+    }
+
+    if (state === LockerStatus.CONFIRMED) {
+      return 'Confirmado Por Cliente';
+    }
+
+    if (state === LockerStatus.LOADING) {
+      return 'Confirmado Por Operario';
+    }
+
+    if (state === LockerStatus.USED) {
+      return 'Cargado';
+    }
+
+    return 'Disponible';
+  };
 
   return (
     <div className="mx-auto mt-8 flow-root space-y-4 px-4 sm:px-0">
@@ -43,6 +64,9 @@ export default async function Station({ params: { stationName } }: { params: { s
                     Nombre
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Estado
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     ¿Abierto?
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -63,6 +87,7 @@ export default async function Station({ params: { stationName } }: { params: { s
                 {station.lockers.map((locker) => (
                   <tr key={locker.nickname}>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.nickname}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{getLockerState(locker.state)}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.isOpen ? 'Si' : 'No'}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.isEmpty ? 'Si' : 'No'}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.sizes.height}</td>

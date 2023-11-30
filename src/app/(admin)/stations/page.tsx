@@ -38,7 +38,7 @@ export default async function Stations() {
                     N˚ de Lockers
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    N˚ de Reservas Confirmadas
+                    N˚ de Lockers Reservados
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Última Conexión
