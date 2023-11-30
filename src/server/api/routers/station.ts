@@ -14,6 +14,7 @@ export const stationRouter = createTRPCRouter({
           z.object({
             stationName: z.string(),
             address: z.string(),
+            amountOfConfirmedReservations: z.number(),
             lastConnection: z.date(),
             lockers: z.array(
               z.object({
@@ -32,9 +33,33 @@ export const stationRouter = createTRPCRouter({
         ),
       })
     )
-    .query(() => {
+    .query(async ({ ctx: { db } }) => {
+      const stations = memoryDb.stations ?? [];
+      const stationNames = stations.map(({ stationName }) => stationName);
+
+      const reservations = await db.reservation.findMany({
+        select: {
+          stationName: true,
+        },
+        where: {
+          stationName: {
+            in: stationNames,
+          },
+          completed: false,
+          expired: false,
+          confirmed_client: true,
+        },
+      });
+
       return {
-        stations: memoryDb.stations ?? [],
+        stations: stations.map((station) => {
+          const stationReservations = reservations.filter(({ stationName }) => stationName === station.stationName);
+
+          return {
+            ...station,
+            amountOfConfirmedReservations: stationReservations.length,
+          };
+        }),
       };
     }),
 

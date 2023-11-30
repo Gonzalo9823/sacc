@@ -38,6 +38,9 @@ export default async function Stations() {
                     N˚ de Lockers
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    N˚ de Reservas Confirmadas
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Última Conexión
                   </th>
                   <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
@@ -51,6 +54,7 @@ export default async function Stations() {
                     <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{station.stationName}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{station.address}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{station.lockers.length}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{station.amountOfConfirmedReservations}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{station.lastConnection.toLocaleString('es-CL')}</td>
                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                       <Link href={`/stations/${station.stationName}`} className="text-red-600 hover:text-red-700">
