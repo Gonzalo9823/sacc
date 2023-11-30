@@ -18,7 +18,13 @@ const LockerInfo: FunctionComponent<LockerInfoProps> = ({ type }) => {
       return <LockerDetail locker={lockerData.locker} password={lockerData.password} type={type} />;
     }
 
-    return <LockerOperatorConfirmForm password={lockerData.password} onSucess={(locker, password) => setLockerData({ locker, password })} />;
+    return (
+      <LockerOperatorConfirmForm
+        locker={lockerData.locker}
+        password={lockerData.password}
+        onSucess={(locker, password) => setLockerData({ locker, password })}
+      />
+    );
   }
 
   return <LockerUnlockForm type={type} onSucess={(locker, password) => setLockerData({ locker, password })} />;
