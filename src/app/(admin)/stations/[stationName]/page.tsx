@@ -23,7 +23,15 @@ export default async function Station({ params: { stationName } }: { params: { s
     <div className="mx-auto mt-8 flow-root space-y-4 px-4 sm:px-0">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Lockers:</h1>
-        <ReloadDataButton />
+        <div className="flex space-x-4">
+          <ReloadDataButton />
+          <Link
+            href="/stations"
+            className="flex h-10 items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
+          >
+            Volver
+          </Link>
+        </div>
       </div>
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
