@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
+import { adminProcedure, createTRPCRouter, protectedProcedure } from '~/server/api/trpc';
 import { memoryDb } from '~/server/memory-db';
 import { LockerStatus } from '~/interfaces/Locker';
 import { TRPCError } from '@trpc/server';
@@ -138,6 +138,145 @@ export const stationRouter = createTRPCRouter({
               state,
             };
           }),
+        },
+      };
+    }),
+
+  getLocker: adminProcedure
+    .meta({ openapi: { method: 'GET', path: '/stations/{stationId}/lockers/{lockerId}' } })
+    .input(
+      z.object({
+        stationId: z.string(),
+        lockerId: z.coerce.number(),
+      })
+    )
+    .output(
+      z.object({
+        locker: z.object({
+          nickname: z.number(),
+          state: z.nativeEnum(LockerStatus),
+          isOpen: z.boolean(),
+          isEmpty: z.boolean(),
+          sizes: z.object({
+            height: z.number(),
+            width: z.number(),
+            depth: z.number(),
+          }),
+          reservations: z.array(
+            z.object({
+              id: z.number(),
+              clientEmail: z.string(),
+              operatorEmail: z.string(),
+              confirmedOperator: z.boolean(),
+              confirmedOperatorAt: z.date().nullish(),
+              confirmedClient: z.boolean(),
+              confirmedClientAt: z.date().nullish(),
+              loaded: z.boolean(),
+              loadedAt: z.date().nullish(),
+              expired: z.boolean(),
+              completed: z.boolean(),
+              completedAt: z.date().nullish(),
+              createdAt: z.date(),
+              createdBy: z.string(),
+            })
+          ),
+        }),
+      })
+    )
+    .query(async ({ ctx: { db }, input }) => {
+      const station = memoryDb.stations?.find(({ stationName }) => stationName === input.stationId);
+      const locker = station?.lockers.find(({ nickname }) => nickname === input.lockerId);
+
+      if (!locker) throw new TRPCError({ code: 'NOT_FOUND' });
+
+      const reservations = await db.reservation.findMany({
+        select: {
+          id: true,
+          clientEmail: true,
+          operatorEmail: true,
+          confirmed_operator: true,
+          confirmedOperatorAt: true,
+          confirmed_client: true,
+          confirmedClientAt: true,
+          loaded: true,
+          loadedAt: true,
+          expired: true,
+          completed: true,
+          completedAt: true,
+          createdAt: true,
+          createdBy: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        where: {
+          lockerId: locker.nickname,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      const lastActiveReservation = reservations.find(({ completed, expired }) => completed === false && expired === false);
+
+      const state = (() => {
+        if (lastActiveReservation?.loaded) {
+          return LockerStatus.USED;
+        }
+
+        if (lastActiveReservation?.confirmed_operator) {
+          return LockerStatus.LOADING;
+        }
+
+        if (lastActiveReservation?.confirmed_client === false) {
+          return LockerStatus.RESERVED;
+        }
+
+        if (lastActiveReservation?.confirmed_client) {
+          return LockerStatus.CONFIRMED;
+        }
+
+        return LockerStatus.AVAILABLE;
+      })();
+
+      return {
+        locker: {
+          ...locker,
+          state,
+          reservations: reservations.map(
+            ({
+              id,
+              clientEmail,
+              operatorEmail,
+              confirmed_operator,
+              confirmedOperatorAt,
+              confirmed_client,
+              confirmedClientAt,
+              loaded,
+              loadedAt,
+              expired,
+              completed,
+              completedAt,
+              createdBy,
+              createdAt,
+            }) => ({
+              id,
+              clientEmail,
+              operatorEmail,
+              confirmedOperator: confirmed_operator,
+              confirmedOperatorAt,
+              confirmedClient: confirmed_client,
+              confirmedClientAt,
+              loaded,
+              loadedAt,
+              expired,
+              completed,
+              completedAt,
+              createdBy: createdBy.name,
+              createdAt,
+            })
+          ),
         },
       };
     }),

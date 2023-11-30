@@ -73,13 +73,16 @@ export default async function Station({ params: { stationName } }: { params: { s
                     ¿Vacio?
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Alturo
+                    Altura
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Ancho
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Profundidad
+                  </th>
+                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <span className="sr-only">Ver</span>
                   </th>
                 </tr>
               </thead>
@@ -93,6 +96,11 @@ export default async function Station({ params: { stationName } }: { params: { s
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.sizes.height}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.sizes.width}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.sizes.depth}</td>
+                    <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                      <Link href={`/stations/${station.stationName}/lockers/${locker.nickname}`} className="text-red-600 hover:text-red-700">
+                        Ver<span className="sr-only">, {station.stationName}</span>
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
