@@ -44,7 +44,11 @@ export class MQTTClient {
   }
 
   async publishAsync(topic: string, message: string) {
-    await this.client.publishAsync(topic, message, {});
+    await this.client.publishAsync(topic, message, {
+      retain: false,
+      qos: 0,
+      dup: false,
+    });
   }
 
   subscribe(topic: string) {
