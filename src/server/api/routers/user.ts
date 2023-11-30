@@ -69,27 +69,86 @@ export const userRouter = createTRPCRouter({
 
   get: adminProcedure
     .meta({ openapi: { method: 'GET', path: '/users/{id}' } })
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.coerce.number() }))
     .output(
       z.object({
-        users: z
-          .object({
-            id: z.number(),
-            email: z.string(),
-            enabled: z.boolean(),
-          })
-          .array(),
+        user: z.object({
+          id: z.number(),
+          name: z.string(),
+          email: z.string(),
+          enabled: z.boolean(),
+          role: z.nativeEnum(UserRole),
+          reservations: z.array(
+            z.object({
+              id: z.number(),
+              stationName: z.string(),
+              lockerId: z.number(),
+              expired: z.boolean(),
+              completed: z.boolean(),
+              createdAt: z.date(),
+            })
+          ),
+        }),
       })
     )
-    .query(async ({ ctx: { db } }) => {
-      const users = await db.user.findMany({
+    .query(async ({ ctx: { db }, input }) => {
+      const { Reservation, ...user } = await db.user.findFirstOrThrow({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          enabled: true,
+          role: true,
+          Reservation: {
+            select: {
+              id: true,
+              stationName: true,
+              lockerId: true,
+              expired: true,
+              completed: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+        where: {
+          id: input.id,
+        },
+      });
+
+      return {
+        user: {
+          ...user,
+          reservations: Reservation,
+        },
+      };
+    }),
+
+  toggleEnabled: adminProcedure
+    .meta({ openapi: { method: 'POST', path: '/users/{id}/toggle-enabled' } })
+    .input(z.object({ id: z.coerce.number() }))
+    .output(z.void())
+    .mutation(async ({ ctx: { db }, input }) => {
+      const user = await db.user.findFirstOrThrow({
         select: {
           id: true,
           email: true,
           enabled: true,
         },
+        where: {
+          id: input.id,
+        },
       });
 
-      return { users };
+      await db.user.update({
+        data: {
+          enabled: !user.enabled,
+        },
+        where: {
+          id: user.id,
+        },
+      });
     }),
 });
