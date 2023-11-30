@@ -37,6 +37,7 @@ export const createTRPCHTTPContext = async (opts: { req: NextApiRequest; res: Ne
   if (opts.req.headers.authorization) {
     const token = opts.req.headers.authorization.split('Bearer ')[1];
     opts.req.cookies['next-auth.session-token'] = token;
+    opts.req.cookies['__Secure-next-auth.session-token'] = token;
   }
 
   const session = await getHTTPServerAuthSession(opts.req, opts.res);
