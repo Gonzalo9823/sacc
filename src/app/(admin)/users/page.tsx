@@ -1,3 +1,4 @@
+import { UserRole } from '@prisma/client';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import ReloadDataButton from '~/components/reload-data-button';
@@ -20,7 +21,15 @@ export default async function Users() {
     <div className="mx-auto mt-8 flow-root space-y-4 px-4 sm:px-0">
       <div className="flex items-center justify-between">
         <h1 className="pointer-events-none text-xl font-bold text-white">Lockers:</h1>
-        <ReloadDataButton />
+        <div className="flex space-x-4">
+          <Link
+            href="/users/new"
+            className="flex h-10 items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
+          >
+            Agregar
+          </Link>
+          <ReloadDataButton />
+        </div>
       </div>
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
@@ -29,10 +38,16 @@ export default async function Users() {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                    Nombre
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Mail
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     ¿Activo?
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Rol
                   </th>
                   <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                     <span className="sr-only">Ver</span>
@@ -42,12 +57,20 @@ export default async function Users() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {users.map((user) => (
                   <tr key={user.id}>
-                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{user.email}</td>
+                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{user.name}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.email}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.enabled ? 'Si' : 'No'}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.role === UserRole.ADMIN ? 'Admin' : 'Usuario'}</td>
                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                      <Link href={`/users/${user.id}`} className="text-red-600 hover:text-red-700">
-                        Ver<span className="sr-only">, {user.email}</span>
-                      </Link>
+                      {session.user.id === user.id ? (
+                        <div className="text-gray-200">
+                          Ver<span className="sr-only">, {user.email}</span>
+                        </div>
+                      ) : (
+                        <Link href={`/users/${user.id}`} aria-disabled={session.user.id === user.id} className="text-red-600 hover:text-red-700">
+                          Ver<span className="sr-only">, {user.email}</span>
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))}
