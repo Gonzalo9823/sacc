@@ -13,7 +13,10 @@ type LockerDetailProps = {
 };
 
 const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker, password, type }) => {
-  const { isLoading, mutateAsync } = api.locker.open.useMutation();
+  const { isLoading: isLoadingOpen, mutateAsync } = api.locker.open.useMutation();
+  const { isLoading: isLoadingCancel, mutateAsync: cancel } = api.reservation.cancel.useMutation();
+
+  const isLoading = isLoadingOpen || isLoadingCancel;
   const router = useRouter();
 
   const handleOpen = async () => {
@@ -37,6 +40,27 @@ const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker, password, 
     }
   };
 
+  const handleCancel = async () => {
+    let canceled = false;
+
+    try {
+      await toast.promise(cancel({ password, type }), {
+        loading: 'Cancelando...',
+        success: () => {
+          canceled = true;
+          return '¡Cancelada!';
+        },
+        error: 'Hubo un error cancelando...',
+      });
+    } catch (err) {
+      // Nothing
+    }
+
+    if (canceled) {
+      router.push('/');
+    }
+  };
+
   return (
     <div>
       <div className="bg-gray-100 px-4 py-2">
@@ -55,14 +79,26 @@ const LockerDetail: FunctionComponent<LockerDetailProps> = ({ locker, password, 
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="mt-6 flex w-full items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
-        onClick={() => handleOpen()}
-        disabled={isLoading || (type === 'client' && !locker.loaded) || (type === 'operator' && locker.loaded)}
-      >
-        Desbloquear
-      </button>
+      <div className="flex space-x-2">
+        {type === 'operator' ? (
+          <button
+            type="submit"
+            className="mt-6 flex w-full items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
+            onClick={() => handleCancel()}
+            disabled={isLoading || (type === 'operator' && locker.loaded)}
+          >
+            Cancelar
+          </button>
+        ) : null}
+        <button
+          type="submit"
+          className="mt-6 flex w-full items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
+          onClick={() => handleOpen()}
+          disabled={isLoading || (type === 'client' && !locker.loaded) || (type === 'operator' && locker.loaded)}
+        >
+          Desbloquear
+        </button>
+      </div>
     </div>
   );
 };

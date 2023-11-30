@@ -357,4 +357,46 @@ export const reservationRouter = createTRPCRouter({
 
       return { expired: true };
     }),
+
+  cancel: publicProcedure
+    .meta({ openapi: { method: 'POST', path: '/reservation/cancel' } })
+    .input(
+      z.object({
+        type: z.union([z.literal('client'), z.literal('operator')]),
+        password: z.string().min(1),
+      })
+    )
+    .output(z.void())
+    .mutation(async ({ ctx: { db }, input }) => {
+      const reservation = await db.reservation.findFirstOrThrow({
+        select: {
+          id: true,
+        },
+        where:
+          input.type === 'client'
+            ? {
+                clientPassword: input.password,
+                confirmed_client: false,
+                loaded: false,
+                completed: false,
+                expired: false,
+              }
+            : {
+                operatorPassword: input.password,
+                confirmed_client: true,
+                loaded: false,
+                completed: false,
+                expired: false,
+              },
+      });
+
+      await db.reservation.update({
+        data: {
+          expired: true,
+        },
+        where: {
+          id: reservation.id,
+        },
+      });
+    }),
 });

@@ -28,12 +28,15 @@ const LockerOperatorConfirmForm: FunctionComponent<LockerOperatorConfirmFormProp
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting: _isSubmitting },
   } = useForm<LockerOperatorConfirmValues>({
     resolver: zodResolver(LockerOperatorConfirmSchema),
   });
 
   const { mutateAsync } = api.reservation.confirmOperator.useMutation();
+  const { isLoading, mutateAsync: cancel } = api.reservation.cancel.useMutation();
+
+  const isSubmitting = _isSubmitting || isLoading;
 
   const onSubmit = async ({ height, width, depth }: LockerOperatorConfirmValues) => {
     let locker: Locker | undefined = undefined;
@@ -64,6 +67,27 @@ const LockerOperatorConfirmForm: FunctionComponent<LockerOperatorConfirmFormProp
 
     if (locker) {
       onSucess(locker, password);
+    }
+  };
+
+  const handleCancel = async () => {
+    let canceled = false;
+
+    try {
+      await toast.promise(cancel({ password, type: 'operator' }), {
+        loading: 'Cancelando...',
+        success: () => {
+          canceled = true;
+          return '¡Cancelada!';
+        },
+        error: 'Hubo un error cancelando...',
+      });
+    } catch (err) {
+      // Nothing
+    }
+
+    if (canceled) {
+      router.push('/');
     }
   };
 
@@ -117,7 +141,15 @@ const LockerOperatorConfirmForm: FunctionComponent<LockerOperatorConfirmFormProp
         </div>
       </div>
 
-      <div>
+      <div className="flex space-x-2">
+        <button
+          type="button"
+          className="flex w-full items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
+          onClick={() => handleCancel()}
+          disabled={isSubmitting}
+        >
+          Cancelar Reservar
+        </button>
         <button
           type="submit"
           className="flex w-full items-center justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:bg-gray-100"
