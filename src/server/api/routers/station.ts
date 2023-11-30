@@ -13,6 +13,8 @@ export const stationRouter = createTRPCRouter({
         stations: z.array(
           z.object({
             stationName: z.string(),
+            address: z.string(),
+            lastConnection: z.date(),
             lockers: z.array(
               z.object({
                 nickname: z.number(),

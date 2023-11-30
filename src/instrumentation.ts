@@ -70,11 +70,11 @@ export async function register() {
             const alreadyAddedStationIdx = memoryDb.stations.findIndex(({ stationName }) => stationName === parsedStation.stationName);
 
             if (alreadyAddedStationIdx >= 0) {
-              memoryDb.stations[alreadyAddedStationIdx] = parsedStation;
+              memoryDb.stations[alreadyAddedStationIdx] = { ...parsedStation, lastConnection: new Date() };
               break;
             }
 
-            memoryDb.stations.push(parsedStation);
+            memoryDb.stations.push({ ...parsedStation, lastConnection: new Date() });
 
             break;
           }

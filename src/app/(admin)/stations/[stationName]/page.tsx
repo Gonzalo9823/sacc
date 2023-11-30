@@ -35,9 +35,6 @@ export default async function Station({ params: { stationName } }: { params: { s
                     Nombre
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Estado
-                  </th>
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     ¿Abierto?
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -52,26 +49,17 @@ export default async function Station({ params: { stationName } }: { params: { s
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                     Profundidad
                   </th>
-                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span className="sr-only">Ver</span>
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
                 {station.lockers.map((locker) => (
                   <tr key={locker.nickname}>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.nickname}</td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.state}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.isOpen ? 'Si' : 'No'}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.isEmpty ? 'Si' : 'No'}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.sizes.height}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.sizes.width}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{locker.sizes.depth}</td>
-                    <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                      <Link href="#" className="text-red-600 hover:text-red-700">
-                        Reservar<span className="sr-only">, {locker.nickname}</span>
-                      </Link>
-                    </td>
                   </tr>
                 ))}
               </tbody>
