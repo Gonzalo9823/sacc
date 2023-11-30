@@ -62,15 +62,9 @@ export default async function Users() {
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.enabled ? 'Si' : 'No'}</td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.role === UserRole.ADMIN ? 'Admin' : 'Usuario'}</td>
                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                      {session.user.id === user.id ? (
-                        <div className="text-gray-200">
-                          Ver<span className="sr-only">, {user.email}</span>
-                        </div>
-                      ) : (
-                        <Link href={`/users/${user.id}`} aria-disabled={session.user.id === user.id} className="text-red-600 hover:text-red-700">
-                          Ver<span className="sr-only">, {user.email}</span>
-                        </Link>
-                      )}
+                      <Link href={`/users/${user.id}`} aria-disabled={session.user.id === user.id} className="text-red-600 hover:text-red-700">
+                        Ver<span className="sr-only">, {user.email}</span>
+                      </Link>
                     </td>
                   </tr>
                 ))}

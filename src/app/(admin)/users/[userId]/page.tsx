@@ -27,7 +27,7 @@ export default async function User({ params }: { params: { userId: string } }) {
     <div className="mx-auto mt-8 flow-root space-y-4 px-4 sm:px-0">
       <div className="flex items-center justify-end">
         <div className="flex space-x-4">
-          <ToggleUserActiveButton enabled={user.enabled} userId={user.id} />
+          {`${session.user.id}` === params.userId ? null : <ToggleUserActiveButton enabled={user.enabled} userId={user.id} />}
           <ReloadDataButton />
           <Link
             href="/users"
